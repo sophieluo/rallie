@@ -15,6 +15,9 @@ struct CameraView: View {
         ZStack {
             CameraPreviewView(controller: controller)
                 .ignoresSafeArea()
+            
+            OverlayView(detector: controller.playerDetector)
+                .allowsHitTesting(false)
 
             GeometryReader { geo in
                 // ROTATED UI OVER PORTRAIT CAMERA

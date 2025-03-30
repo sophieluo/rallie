@@ -1,0 +1,13 @@
+# Ignore OpenCV framework
+rallie/rallie/Frameworks/opencv2.framework/
+
+# Xcode build files
+DerivedData/
+build/
+
+# macOS system files
+.DS_Store
+
+# User settings
+*.xcuserdata
+*.xcuserstate

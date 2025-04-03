@@ -5,7 +5,7 @@ struct CameraView: View {
 
     var body: some View {
         ZStack {
-            CameraPreviewControllerWrapper(controller: cameraController)
+            CameraPreviewControllerWrapper(cameraController: cameraController)
                 .ignoresSafeArea()
 
             // Overlay: court projection

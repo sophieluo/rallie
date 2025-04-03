@@ -45,7 +45,12 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         output.setSampleBufferDelegate(self, queue: DispatchQueue(label: "VideoQueue"))
         session.addOutput(output)
 
-        session.startRunning()
+        // ✅ Start running session in background thread
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.session.startRunning()
+            print("🎥 Camera session started")
+        }
+
         computeCourtHomography()
     }
 

@@ -9,17 +9,17 @@ import SwiftUI
 import UIKit
 
 struct CameraPreviewControllerWrapper: UIViewControllerRepresentable {
-    let controller: CameraController
+    let cameraController: CameraController
 
     func makeUIViewController(context: Context) -> UIViewController {
-        let viewController = UIViewController()
+        let vc = UIViewController()
         DispatchQueue.main.async {
-            controller.startSession(in: viewController.view)
+            self.cameraController.startSession(in: vc.view)
         }
-        return viewController
+        return vc
     }
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        // No-op
+        // nothing needed
     }
 }

@@ -46,13 +46,13 @@ using namespace cv;
     return result;
 }
 
-+ (nullable NSValue *)projectPoint:(CGPoint)point usingHomography:(NSArray<NSValue *> *)homography {
-    if (homography.count != 9) return nil;
++ (nullable NSValue *)projectPoint:(CGPoint)point usingMatrix:(NSArray<NSNumber *> *)matrix {
+    if (matrix.count != 9) return nil;
 
     Mat H(3, 3, CV_32F);
     for (int i = 0; i < 9; ++i) {
-        CGPoint pt = [homography[i] CGPointValue];
-        H.at<float>(i / 3, i % 3) = pt.y;  // using .y as actual matrix value
+        float value = [matrix[i] floatValue];
+        H.at<float>(i / 3, i % 3) = value;
     }
 
     std::vector<Point2f> input = { Point2f(point.x, point.y) };

@@ -26,31 +26,42 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
     func startSession(in view: UIView) {
         session.sessionPreset = .high
 
+        // 1. Set up camera input
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
               let input = try? AVCaptureDeviceInput(device: device),
               session.canAddInput(input) else {
             print("❌ Failed to set up camera input")
             return
         }
-
         session.addInput(input)
 
+        // 2. Set up video output
+        let output = AVCaptureVideoDataOutput()
+        output.setSampleBufferDelegate(self, queue: DispatchQueue(label: "VideoQueue"))
+        if session.canAddOutput(output) {
+            session.addOutput(output)
+        }
+
+        // 3. Set up preview layer
         let preview = AVCaptureVideoPreviewLayer(session: session)
         preview.videoGravity = .resizeAspectFill
         preview.frame = view.bounds
+        preview.connection?.videoOrientation = .landscapeRight
         view.layer.insertSublayer(preview, at: 0)
         self.previewLayer = preview
 
-        let output = AVCaptureVideoDataOutput()
-        output.setSampleBufferDelegate(self, queue: DispatchQueue(label: "VideoQueue"))
-        session.addOutput(output)
-
-        // ✅ Start running session in background thread
-        DispatchQueue.global(qos: .userInitiated).async {
-            self.session.startRunning()
-            print("🎥 Camera session started")
+        // 4. Set orientation for output connection (optional but recommended)
+        if let connection = output.connection(with: .video),
+           connection.isVideoOrientationSupported {
+            connection.videoOrientation = .landscapeRight
         }
 
+        // 5. Start session on background thread
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.session.startRunning()
+        }
+
+        // 6. Compute homography once preview is up
         computeCourtHomography()
     }
 
@@ -103,5 +114,13 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         playerDetector.processPixelBuffer(pixelBuffer)
     }
+    
+    
+    func updatePreviewFrame(to bounds: CGRect) {
+        DispatchQueue.main.async {
+            self.previewLayer?.frame = bounds
+        }
+    }
+
 }
 

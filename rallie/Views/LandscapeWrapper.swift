@@ -6,13 +6,19 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct LandscapeWrapper<Content: View>: UIViewControllerRepresentable {
-    let content: () -> Content
+    let content: Content
 
     func makeUIViewController(context: Context) -> UIViewController {
-        return LandscapeHostingController(rootView: content())
+        return LandscapeHostingController(rootView: content)
     }
 
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
+        // No-op
+    }
 }
+
+
+

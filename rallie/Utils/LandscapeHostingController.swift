@@ -9,10 +9,18 @@ import SwiftUI
 
 class LandscapeHostingController<Content: View>: UIHostingController<Content> {
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        return .landscape
+    }
+
+    override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
         return .landscapeRight
     }
 
     override var shouldAutorotate: Bool {
-        return true
+        return false
     }
 }
+
+
+
+

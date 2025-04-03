@@ -2,20 +2,20 @@ import SwiftUI
 
 struct CameraView: View {
     @ObservedObject var cameraController: CameraController
+    @Environment(\.dismiss) private var dismiss   // ✅ dismiss environment
 
     var body: some View {
         ZStack {
-            CameraPreviewControllerWrapper(cameraController: cameraController)
+            CameraPreviewControllerWrapper(controller: cameraController)
                 .ignoresSafeArea()
 
-            // Overlay: court projection
             CourtOverlayView(courtLines: cameraController.projectedCourtLines)
 
-            // Overlay: alignment box and controls
             VStack {
                 HStack {
                     Button(action: {
-                        cameraController.stopSession()
+                        cameraController.stopSession()   // ✅ stop camera
+                        dismiss()                        // ✅ dismiss view
                     }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 28))
@@ -37,7 +37,6 @@ struct CameraView: View {
                     .padding(.bottom, 10)
 
                 Button(action: {
-                    // In future: trigger record or player tracking
                     print("Start tapped")
                 }) {
                     Text("Start")

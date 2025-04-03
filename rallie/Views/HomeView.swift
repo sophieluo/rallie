@@ -31,10 +31,9 @@ struct HomeView: View {
             Spacer()
         }
         .fullScreenCover(isPresented: $showCamera) {
-            LandscapeWrapper {
-                CameraView(cameraController: cameraController) // ✅ Pass the controller
+            LandscapeWrapper(content: CameraView(cameraController: cameraController))
             }
         }
     }
-}
+
 

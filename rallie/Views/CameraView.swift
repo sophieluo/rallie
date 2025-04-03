@@ -2,7 +2,7 @@ import SwiftUI
 
 struct CameraView: View {
     @ObservedObject var cameraController: CameraController
-    @Environment(\.dismiss) private var dismiss   // ✅ dismiss environment
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ZStack {
@@ -14,8 +14,8 @@ struct CameraView: View {
             VStack {
                 HStack {
                     Button(action: {
-                        cameraController.stopSession()   // ✅ stop camera
-                        dismiss()                        // ✅ dismiss view
+                        cameraController.stopSession()
+                        dismiss()
                     }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 28))
@@ -27,29 +27,32 @@ struct CameraView: View {
 
                 Spacer()
 
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.red, lineWidth: 2)
-                    .frame(width: 160, height: 10)
-                    .padding(.bottom, 120)
+                // ✅ Centered red box
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.red, lineWidth: 4)
+                    .frame(width: 500, height: 20)
+                    .padding(.bottom, 0)
 
                 Text("Align the near service line with the red box")
                     .foregroundColor(.white)
-                    .padding(.bottom, 10)
+                    .font(.title3)
+                    .padding(.top, 12)
+
+                Spacer()
 
                 Button(action: {
                     print("Start tapped")
                 }) {
                     Text("Start")
-                        .font(.headline)
+                        .font(.title2)
                         .padding()
                         .background(Color.blue.opacity(0.8))
                         .foregroundColor(.white)
                         .cornerRadius(10)
                 }
 
-                Spacer().frame(height: 40)
+                Spacer().frame(height: 30)
             }
         }
     }
 }
-

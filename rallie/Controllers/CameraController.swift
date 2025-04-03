@@ -6,6 +6,7 @@ import Vision
 class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     private let session = AVCaptureSession()
     private var previewLayer: AVCaptureVideoPreviewLayer?
+    private var output: AVCaptureVideoDataOutput?
 
     // MARK: - Vision
     var playerDetector = PlayerDetector()
@@ -26,7 +27,11 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
     func startSession(in view: UIView) {
         session.sessionPreset = .high
 
-        // 1. Set up camera input
+        // Clean old inputs/outputs if re-entering
+        session.inputs.forEach { session.removeInput($0) }
+        session.outputs.forEach { session.removeOutput($0) }
+
+        // Setup input
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
               let input = try? AVCaptureDeviceInput(device: device),
               session.canAddInput(input) else {
@@ -35,38 +40,48 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         }
         session.addInput(input)
 
-        // 2. Set up video output
+        // Setup output
         let output = AVCaptureVideoDataOutput()
         output.setSampleBufferDelegate(self, queue: DispatchQueue(label: "VideoQueue"))
-        if session.canAddOutput(output) {
-            session.addOutput(output)
+        guard session.canAddOutput(output) else {
+            print("❌ Failed to add video output")
+            return
         }
+        session.addOutput(output)
+        self.output = output
 
-        // 3. Set up preview layer
+        // Remove existing preview layer if re-entering
+        previewLayer?.removeFromSuperlayer()
+
+        // Setup preview layer
         let preview = AVCaptureVideoPreviewLayer(session: session)
         preview.videoGravity = .resizeAspectFill
         preview.frame = view.bounds
-        preview.connection?.videoOrientation = .landscapeRight
-        view.layer.insertSublayer(preview, at: 0)
-        self.previewLayer = preview
 
-        // 4. Set orientation for output connection (optional but recommended)
-        if let connection = output.connection(with: .video),
-           connection.isVideoOrientationSupported {
+        if let connection = preview.connection, connection.isVideoOrientationSupported {
             connection.videoOrientation = .landscapeRight
         }
 
-        // 5. Start session on background thread
+        view.layer.insertSublayer(preview, at: 0)
+        self.previewLayer = preview
+
+        // Run session on background thread
         DispatchQueue.global(qos: .userInitiated).async {
             self.session.startRunning()
         }
 
-        // 6. Compute homography once preview is up
         computeCourtHomography()
     }
 
+
     func stopSession() {
         session.stopRunning()
+
+        // Optional: Clean preview + output if needed
+        DispatchQueue.main.async {
+            self.previewLayer?.removeFromSuperlayer()
+            self.previewLayer = nil
+        }
     }
 
     func computeCourtHomography() {

@@ -1,10 +1,3 @@
-//
-//  CameraController.swift
-//  rallie
-//
-//  Created by Xiexiao_Luo on 3/29/25.
-//
-
 import Foundation
 import AVFoundation
 import UIKit
@@ -17,8 +10,8 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
     // MARK: - Vision
     var playerDetector = PlayerDetector()
 
-    // MARK: - Homography
-    var homographyPoints: [CGPoint]? = nil  // Optional output after compute
+    // MARK: - Homography Output
+    @Published var projectedCourtLines: [LineSegment] = []
 
     /// Hardcoded image-space points for initial court alignment (in pixels)
     var imagePoints: [CGPoint] {
@@ -30,7 +23,6 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         ]
     }
 
-    // MARK: - Session Setup
     func startSession(in view: UIView) {
         session.sessionPreset = .high
 
@@ -49,14 +41,11 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         view.layer.insertSublayer(preview, at: 0)
         self.previewLayer = preview
 
-        // Add live video output for Vision
         let output = AVCaptureVideoDataOutput()
         output.setSampleBufferDelegate(self, queue: DispatchQueue(label: "VideoQueue"))
         session.addOutput(output)
 
         session.startRunning()
-
-        // 👇 Compute homography on start
         computeCourtHomography()
     }
 
@@ -64,28 +53,50 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         session.stopRunning()
     }
 
-    // MARK: - Compute Homography
     func computeCourtHomography() {
-        let courtReferencePoints = CourtLayout.referencePoints
+        let courtPoints = CourtLayout.referencePoints
+        let imagePoints = self.imagePoints
 
-        let result = HomographyHelper.computeHomography(from: imagePoints, to: courtReferencePoints)
-        self.homographyPoints = result
+        // Convert to NSArray<NSValue>
+        let src = imagePoints.map { NSValue(cgPoint: $0) }
+        let dst = courtPoints.map { NSValue(cgPoint: $0) }
 
-        if let matrix = result {
-            print("✅ Homography computed: \(matrix)")
-        } else {
-            print("❌ Failed to compute homography")
+        // Compute homography matrix (as NSArray<NSValue>)
+        if let rawMatrix = OpenCVWrapper.computeHomography(from: src, to: dst) {
+            // Convert [NSValue<CGPoint>] to [NSNumber] by extracting .y
+            let matrixValues: [NSNumber] = rawMatrix.map { NSNumber(value: Double($0.cgPointValue.y)) }
+
+            // Define full court lines in court space (8m x 12m)
+            let courtLines: [LineSegment] = [
+                LineSegment(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 8, y: 0)),     // near service line
+                LineSegment(start: CGPoint(x: 0, y: 12), end: CGPoint(x: 8, y: 12)),   // far baseline
+                LineSegment(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 0, y: 12)),    // left sideline
+                LineSegment(start: CGPoint(x: 8, y: 0), end: CGPoint(x: 8, y: 12)),    // right sideline
+                LineSegment(start: CGPoint(x: 4, y: 0), end: CGPoint(x: 4, y: 12))     // center service line
+            ]
+
+            // Project each line using homography
+            let transformedLines: [LineSegment] = courtLines.compactMap { line in
+                if let p1Value = OpenCVWrapper.projectPoint(line.start, usingMatrix: matrixValues),
+                   let p2Value = OpenCVWrapper.projectPoint(line.end, usingMatrix: matrixValues) {
+                    let p1 = p1Value.cgPointValue
+                    let p2 = p2Value.cgPointValue
+                    return LineSegment(start: p1, end: p2)
+                }
+                return nil
+            }
+
+            // Update published output on main thread
+            DispatchQueue.main.async {
+                self.projectedCourtLines = transformedLines
+            }
         }
     }
 
-    // MARK: - AVCapture Delegate (frame-by-frame)
+
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-
-        // Run Vision player detection
         playerDetector.processPixelBuffer(pixelBuffer)
-
-        // Later: Use `homographyPoints` to transform player position
     }
 }
 

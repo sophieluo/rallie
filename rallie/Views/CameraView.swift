@@ -1,67 +1,54 @@
-//
-//  CameraView.swift
-//  rallie
-//
-//  Created by Xiexiao_Luo on 3/29/25.
-//
-
 import SwiftUI
 
 struct CameraView: View {
-    @Environment(\.dismiss) var dismiss
-    @StateObject private var controller = CameraController()
+    @ObservedObject var cameraController: CameraController
 
     var body: some View {
         ZStack {
-            CameraPreviewView(controller: controller)
+            CameraPreviewControllerWrapper(controller: cameraController)
                 .ignoresSafeArea()
-            
-            OverlayView(detector: controller.playerDetector)
-                .allowsHitTesting(false)
 
-            GeometryReader { geo in
-                // ROTATED UI OVER PORTRAIT CAMERA
-                ZStack {
-                    // Pink rectangle + prompt
-                    VStack(spacing: 20) {
-                        RoundedRectangle(cornerRadius: 30)
-                            .stroke(Color.pink, lineWidth: 6)
-                            .frame(width: geo.size.height * 0.6, height: 16) // wide box
-                        Text("Align the near service line to be\ninside the pink rectangle for best results")
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
-                            .font(.system(size: 16, weight: .semibold))
-                    }
-                    .rotationEffect(.degrees(90))
-                    .position(x: geo.size.width / 2, y: geo.size.height / 2 + 60)
+            // Overlay: court projection
+            CourtOverlayView(courtLines: cameraController.projectedCourtLines)
 
-                    // Close button (top-left in landscape)
+            // Overlay: alignment box and controls
+            VStack {
+                HStack {
                     Button(action: {
-                        dismiss()
+                        cameraController.stopSession()
                     }) {
                         Image(systemName: "xmark.circle.fill")
-                            .resizable()
-                            .frame(width: 30, height: 30)
+                            .font(.system(size: 28))
                             .foregroundColor(.white)
+                            .padding()
                     }
-                    .rotationEffect(.degrees(90))
-                    .position(x: 40, y: 60)
-
-                    // START button (bottom-right in landscape)
-                    Button(action: {
-                        // handle start recording
-                    }) {
-                        Text("START")
-                            .foregroundColor(.white)
-                            .font(.system(size: 18, weight: .bold))
-                            .frame(width: 80, height: 80)
-                            .background(Color.green)
-                            .clipShape(Circle())
-                            .shadow(radius: 4)
-                    }
-                    .rotationEffect(.degrees(90))
-                    .position(x: geo.size.width - 60, y: geo.size.height - 80)
+                    Spacer()
                 }
+
+                Spacer()
+
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.red, lineWidth: 2)
+                    .frame(width: 160, height: 10)
+                    .padding(.bottom, 120)
+
+                Text("Align the near service line with the red box")
+                    .foregroundColor(.white)
+                    .padding(.bottom, 10)
+
+                Button(action: {
+                    // In future: trigger record or player tracking
+                    print("Start tapped")
+                }) {
+                    Text("Start")
+                        .font(.headline)
+                        .padding()
+                        .background(Color.blue.opacity(0.8))
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
+                }
+
+                Spacer().frame(height: 40)
             }
         }
     }

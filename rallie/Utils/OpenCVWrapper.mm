@@ -6,46 +6,62 @@
 //
 
 #import "OpenCVWrapper.h"
-#import <Foundation/Foundation.h>
+
+#ifdef __OBJC__
+#undef NO
+#endif
 
 #ifdef __cplusplus
-#import <opencv2/core.hpp>
-#import <opencv2/imgproc.hpp>
-#import <opencv2/calib3d.hpp>
-#import <opencv2/calib3d.hpp>
-#import <opencv2/core/core.hpp>
+#import <opencv2/opencv.hpp>
 #endif
 
 using namespace cv;
 
 @implementation OpenCVWrapper
 
-+ (NSArray<NSValue *> *)computeHomographyFrom:(NSArray<NSValue *> *)imagePoints
-                                            to:(NSArray<NSValue *> *)courtPoints
-{
-    CV_Assert(imagePoints.count == 4 && courtPoints.count == 4);
++ (nullable NSArray<NSValue *> *)computeHomographyFrom:(NSArray<NSValue *> *)imagePoints
+                                                     to:(NSArray<NSValue *> *)courtPoints {
+    if (imagePoints.count != 4 || courtPoints.count != 4) return nil;
 
-    Mat src(4, 1, CV_32FC2);
-    Mat dst(4, 1, CV_32FC2);
-
+    std::vector<Point2f> src, dst;
     for (int i = 0; i < 4; i++) {
-        CGPoint srcPt = [imagePoints[i] CGPointValue];
-        CGPoint dstPt = [courtPoints[i] CGPointValue];
-
-        src.at<Vec2f>(i, 0) = Vec2f(srcPt.x, srcPt.y);
-        dst.at<Vec2f>(i, 0) = Vec2f(dstPt.x, dstPt.y);
+        CGPoint sp = [imagePoints[i] CGPointValue];
+        CGPoint dp = [courtPoints[i] CGPointValue];
+        src.push_back(Point2f(sp.x, sp.y));
+        dst.push_back(Point2f(dp.x, dp.y));
     }
 
     Mat H = findHomography(src, dst);
+    if (H.empty()) return nil;
 
     NSMutableArray *result = [NSMutableArray array];
-    for (int r = 0; r < H.rows; r++) {
-        for (int c = 0; c < H.cols; c++) {
-            float val = H.at<double>(r, c);
-            [result addObject:[NSValue valueWithCGPoint:CGPointMake(c, val)]];
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            float value = (float)H.at<double>(i, j);
+            CGPoint point = CGPointMake(j, value); // encode value as .y
+            [result addObject:[NSValue valueWithCGPoint:point]];
         }
     }
+
     return result;
+}
+
++ (nullable NSValue *)projectPoint:(CGPoint)point usingHomography:(NSArray<NSValue *> *)homography {
+    if (homography.count != 9) return nil;
+
+    Mat H(3, 3, CV_32F);
+    for (int i = 0; i < 9; ++i) {
+        CGPoint pt = [homography[i] CGPointValue];
+        H.at<float>(i / 3, i % 3) = pt.y;  // using .y as actual matrix value
+    }
+
+    std::vector<Point2f> input = { Point2f(point.x, point.y) };
+    std::vector<Point2f> output;
+
+    perspectiveTransform(input, output, H);
+    if (output.empty()) return nil;
+
+    return [NSValue valueWithCGPoint:CGPointMake(output[0].x, output[0].y)];
 }
 
 @end

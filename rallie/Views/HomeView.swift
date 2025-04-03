@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var showCamera = false
+    @StateObject private var cameraController = CameraController() // ✅ Create controller instance
 
     var body: some View {
         VStack {
@@ -31,8 +32,9 @@ struct HomeView: View {
         }
         .fullScreenCover(isPresented: $showCamera) {
             LandscapeWrapper {
-                CameraView()
+                CameraView(cameraController: cameraController) // ✅ Pass the controller
             }
         }
     }
 }
+

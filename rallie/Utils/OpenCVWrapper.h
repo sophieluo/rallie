@@ -8,9 +8,16 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @interface OpenCVWrapper : NSObject
 
-+ (nullable NSArray<NSValue *> *)computeHomographyFrom:(NSArray<NSValue *> *)srcPoints
-                                                     to:(NSArray<NSValue *> *)dstPoints;
++ (nullable NSArray<NSValue *> *)computeHomographyFrom:(NSArray<NSValue *> *)imagePoints
+                                            to:(NSArray<NSValue *> *)courtPoints;
+
++ (nullable NSValue *)projectPoint:(CGPoint)point usingMatrix:(NSArray<NSNumber *> *)matrix;
 
 @end
+
+NS_ASSUME_NONNULL_END
+

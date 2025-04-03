@@ -11,3 +11,4 @@ build/
 # User settings
 *.xcuserdata
 *.xcuserstate
+rallie/Frameworks/opencv2.framework/

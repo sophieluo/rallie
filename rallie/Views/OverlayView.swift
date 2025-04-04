@@ -8,22 +8,32 @@
 import SwiftUI
 
 struct OverlayView: View {
-    @ObservedObject var detector: PlayerDetector
     var body: some View {
-        GeometryReader { geo in
-            let rect = detector.boundingBox
-            let frame = CGRect(
-                x: rect.minX * geo.size.width,
-                y: (1 - rect.maxY) * geo.size.height,
-                width: rect.width * geo.size.width,
-                height: rect.height * geo.size.height
-            )
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let height = geometry.size.height
 
-            Rectangle()
-                .stroke(Color.green, lineWidth: 3)
-                .frame(width: frame.width, height: frame.height)
-                .position(x: frame.midX, y: frame.midY)
-                .animation(.easeInOut(duration: 0.1), value: detector.boundingBox)
+            // Adjust position + slimming
+            let topY = height * 0.55         // moved further down
+            let bottomY = height * 0.85      // moved further down
+            let topInset: CGFloat = width * 0.25   // slimmer top
+            let bottomInset: CGFloat = width * 0.15  // slimmer bottom
+
+            let topLeft = CGPoint(x: topInset, y: topY)
+            let topRight = CGPoint(x: width - topInset, y: topY)
+            let bottomRight = CGPoint(x: width - bottomInset, y: bottomY)
+            let bottomLeft = CGPoint(x: bottomInset, y: bottomY)
+
+            Path { path in
+                path.move(to: topLeft)
+                path.addLine(to: topRight)
+                path.addLine(to: bottomRight)
+                path.addLine(to: bottomLeft)
+                path.closeSubpath()
+            }
+            .stroke(Color.red, lineWidth: 4)
         }
+        .ignoresSafeArea()
     }
 }
+

@@ -1,3 +1,5 @@
+// MARK: - CameraController.swift
+
 import Foundation
 import AVFoundation
 import UIKit
@@ -13,17 +15,11 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
 
     // MARK: - Homography Output
     @Published var projectedCourtLines: [LineSegment] = []
-
-    /// Hardcoded image-space points for initial court alignment (in pixels)
-    var imagePoints: [CGPoint] {
-        return [
-            CGPoint(x: 120, y: 450), // near left service line
-            CGPoint(x: 260, y: 450), // near right service line
-            CGPoint(x: 120, y: 150), // far left baseline
-            CGPoint(x: 260, y: 150)  // far right baseline
-        ]
-    }
-
+    
+    @Published var lastProjectedTap: CGPoint? = nil
+    //private var homographyMatrix: [NSNumber]? = nil  // Store computed matrix for reuse
+    @Published var homographyMatrix: [NSNumber]? = nil
+    
     func startSession(in view: UIView) {
         session.sessionPreset = .high
 
@@ -65,77 +61,83 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         view.layer.insertSublayer(preview, at: 0)
         self.previewLayer = preview
 
-        // Run session on background thread
+        // Start camera session
         DispatchQueue.global(qos: .userInitiated).async {
             self.session.startRunning()
         }
 
+        // Compute court projection once
         computeCourtHomography()
     }
 
-
     func stopSession() {
         session.stopRunning()
-
-        // Optional: Clean preview + output if needed
         DispatchQueue.main.async {
             self.previewLayer?.removeFromSuperlayer()
             self.previewLayer = nil
+            self.output = nil
         }
     }
 
     func computeCourtHomography() {
-        let courtPoints = CourtLayout.referencePoints
-        let imagePoints = self.imagePoints
+        let courtPoints = CourtLayout.referenceCourtPoints
+        let imagePoints = CourtLayout.referenceImagePoints
 
-        // Convert to NSArray<NSValue>
-        let src = imagePoints.map { NSValue(cgPoint: $0) }
-        let dst = courtPoints.map { NSValue(cgPoint: $0) }
+        // Compute and store raw matrix
+        guard let matrix = HomographyHelper.computeHomographyMatrix(from: imagePoints, to: courtPoints) else {
+            print("❌ Homography matrix computation failed.")
+            return
+        }
+        self.homographyMatrix = matrix
 
-        // Compute homography matrix (as NSArray<NSValue>)
-        if let rawMatrix = OpenCVWrapper.computeHomography(from: src, to: dst) {
-            // Convert [NSValue<CGPoint>] to [NSNumber] by extracting .y
-            let matrixValues: [NSNumber] = rawMatrix.map { NSNumber(value: Double($0.cgPointValue.y)) }
+        // Define reference court lines in court space
+        let courtLines: [LineSegment] = [
+            LineSegment(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 8.23, y: 0)),       // near service line
+            LineSegment(start: CGPoint(x: 0, y: 5.49), end: CGPoint(x: 8.23, y: 5.49)), // baseline
+            LineSegment(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 0, y: 5.49)),       // left sideline
+            LineSegment(start: CGPoint(x: 8.23, y: 0), end: CGPoint(x: 8.23, y: 5.49)), // right sideline
+            LineSegment(start: CGPoint(x: 4.115, y: 0), end: CGPoint(x: 4.115, y: 5.49))// center service line
+        ]
 
-            // Define full court lines in court space (8m x 12m)
-            let courtLines: [LineSegment] = [
-                LineSegment(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 8, y: 0)),     // near service line
-                LineSegment(start: CGPoint(x: 0, y: 12), end: CGPoint(x: 8, y: 12)),   // far baseline
-                LineSegment(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 0, y: 12)),    // left sideline
-                LineSegment(start: CGPoint(x: 8, y: 0), end: CGPoint(x: 8, y: 12)),    // right sideline
-                LineSegment(start: CGPoint(x: 4, y: 0), end: CGPoint(x: 4, y: 12))     // center service line
-            ]
-
-            // Project each line using homography
-            let transformedLines: [LineSegment] = courtLines.compactMap { line in
-                if let p1Value = OpenCVWrapper.projectPoint(line.start, usingMatrix: matrixValues),
-                   let p2Value = OpenCVWrapper.projectPoint(line.end, usingMatrix: matrixValues) {
-                    let p1 = p1Value.cgPointValue
-                    let p2 = p2Value.cgPointValue
-                    return LineSegment(start: p1, end: p2)
-                }
+        // Project lines using the computed matrix
+        let transformedLines: [LineSegment] = courtLines.compactMap { line in
+            guard let p1 = HomographyHelper.project(point: line.start, using: matrix),
+                  let p2 = HomographyHelper.project(point: line.end, using: matrix) else {
                 return nil
             }
+            return LineSegment(start: p1, end: p2)
+        }
 
-            // Update published output on main thread
-            DispatchQueue.main.async {
-                self.projectedCourtLines = transformedLines
-            }
+        // Update UI on main thread
+        DispatchQueue.main.async {
+            self.projectedCourtLines = transformedLines
         }
     }
-
 
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         playerDetector.processPixelBuffer(pixelBuffer)
     }
-    
-    
+
     func updatePreviewFrame(to bounds: CGRect) {
         DispatchQueue.main.async {
             self.previewLayer?.frame = bounds
         }
     }
+
+    func handleUserTap(_ location: CGPoint) {
+        guard let matrix = homographyMatrix else {
+            print("❌ Cannot project tap — matrix not ready")
+            return
+        }
+
+        if let projected = HomographyHelper.project(point: location, using: matrix) {
+            DispatchQueue.main.async {
+                self.lastProjectedTap = projected
+            }
+        }
+    }
+
 
 }
 

@@ -6,11 +6,35 @@ struct CameraView: View {
 
     var body: some View {
         ZStack {
+            // Camera + tap gesture
             CameraPreviewControllerWrapper(controller: cameraController)
                 .ignoresSafeArea()
+                .contentShape(Rectangle()) // needed for full-screen tap
+            
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onEnded { value in
+                            let location = value.location
+                            cameraController.handleUserTap(location)
+                        }
+                )
 
-            CourtOverlayView(courtLines: cameraController.projectedCourtLines)
+            // Alignment overlay
+            OverlayView()  // draws the trapezoid
 
+            // Top-right corner: mini court
+            VStack {
+                HStack {
+                    Spacer()
+                    MiniCourtView(projectedPoint: cameraController.lastProjectedTap)
+                        .frame(width: 140, height: 100)
+                        .padding(.top, 20)
+                        .padding(.trailing, 20)
+                }
+                Spacer()
+            }
+
+            // Buttons and label
             VStack {
                 HStack {
                     Button(action: {
@@ -27,32 +51,26 @@ struct CameraView: View {
 
                 Spacer()
 
-                // ✅ Centered red box
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.red, lineWidth: 4)
-                    .frame(width: 500, height: 20)
-                    .padding(.bottom, 0)
-
-                Text("Align the near service line with the red box")
+                Text("Align the court to fit the red outline")
                     .foregroundColor(.white)
-                    .font(.title3)
-                    .padding(.top, 12)
+                    .padding(.bottom, 10)
 
                 Spacer()
 
                 Button(action: {
                     print("Start tapped")
                 }) {
-                    Text("Start")
-                        .font(.title2)
+                    Text("Aligned - Let's go!")
+                        .font(.headline)
                         .padding()
                         .background(Color.blue.opacity(0.8))
                         .foregroundColor(.white)
                         .cornerRadius(10)
                 }
 
-                Spacer().frame(height: 30)
+                Spacer().frame(height: 40)
             }
         }
     }
 }
+

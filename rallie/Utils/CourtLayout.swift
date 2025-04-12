@@ -6,23 +6,24 @@
 //
 
 // MARK: - CourtLayout.swift
-
 import CoreGraphics
 
 struct CourtLayout {
-    /// Pixel coordinates on screen (based on red trapezoid overlay in CameraView)
-    static let referenceImagePoints: [CGPoint] = [
-        CGPoint(x: 120, y: 450), // near left service line
-        CGPoint(x: 260, y: 450), // near right service line
-        CGPoint(x: 140, y: 150), // far left baseline
-        CGPoint(x: 240, y: 150)  // far right baseline
-    ]
+    static let screenWidth: CGFloat = 844   // landscape iPhone 13
+    static let screenHeight: CGFloat = 390
 
-    /// Court coordinates in meters (corresponding real-world court space)
+    static func referenceImagePoints(for screenSize: CGSize) -> [CGPoint] {
+        return OverlayHelper.computeTrapezoid(
+            screenWidth: screenSize.width,
+            screenHeight: screenSize.height
+        )
+    }
+
     static let referenceCourtPoints: [CGPoint] = [
-        CGPoint(x: 0, y: 0),       // near left service line
-        CGPoint(x: 8.23, y: 0),    // near right service line
-        CGPoint(x: 0, y: 5.49),    // far left baseline
-        CGPoint(x: 8.23, y: 5.49)  // far right baseline
+        CGPoint(x: 0, y: 0),       // near-left
+        CGPoint(x: 8.23, y: 0),    // near-right
+        CGPoint(x: 8.23, y: 5.49), // far-right
+        CGPoint(x: 0, y: 5.49)     // far-left
     ]
 }
+

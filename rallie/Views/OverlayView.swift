@@ -7,33 +7,23 @@
 
 import SwiftUI
 
-struct OverlayView: View {
-    var body: some View {
-        GeometryReader { geometry in
-            let width = geometry.size.width
-            let height = geometry.size.height
+struct OverlayView {
+    static func redTrapezoid(in geometry: GeometryProxy) -> [CGPoint] {
+        let width = geometry.size.width
+        let height = geometry.size.height
 
-            // Adjust position + slimming
-            let topY = height * 0.55         // moved further down
-            let bottomY = height * 0.85      // moved further down
-            let topInset: CGFloat = width * 0.25   // slimmer top
-            let bottomInset: CGFloat = width * 0.15  // slimmer bottom
+        let topY = height * 0.55
+        let bottomY = height * 0.85
+        let topInset = width * 0.25
+        let bottomInset = width * 0.15
 
-            let topLeft = CGPoint(x: topInset, y: topY)
-            let topRight = CGPoint(x: width - topInset, y: topY)
-            let bottomRight = CGPoint(x: width - bottomInset, y: bottomY)
-            let bottomLeft = CGPoint(x: bottomInset, y: bottomY)
-
-            Path { path in
-                path.move(to: topLeft)
-                path.addLine(to: topRight)
-                path.addLine(to: bottomRight)
-                path.addLine(to: bottomLeft)
-                path.closeSubpath()
-            }
-            .stroke(Color.red, lineWidth: 4)
-        }
-        .ignoresSafeArea()
+        return [
+            CGPoint(x: bottomInset, y: bottomY),         // near-left
+            CGPoint(x: width - bottomInset, y: bottomY), // near-right
+            CGPoint(x: width - topInset, y: topY),       // far-right
+            CGPoint(x: topInset, y: topY)                // far-left
+        ]
     }
 }
+
 

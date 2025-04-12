@@ -15,12 +15,14 @@ struct CameraView: View {
                     DragGesture(minimumDistance: 0)
                         .onEnded { value in
                             let location = value.location
-                            cameraController.handleUserTap(location)
+                            if cameraController.isTappingEnabled {
+                                cameraController.handleUserTap(location)
+                            }
                         }
                 )
 
             // Alignment overlay
-            OverlayView()  // draws the trapezoid
+            OverlayShapeView()  // draws the trapezoid
 
             // Top-right corner: mini court
             VStack {
@@ -58,7 +60,8 @@ struct CameraView: View {
                 Spacer()
 
                 Button(action: {
-                    print("Start tapped")
+                    cameraController.isTappingEnabled = true
+                    print("Tapping is now enabled")
                 }) {
                     Text("Aligned - Let's go!")
                         .font(.headline)

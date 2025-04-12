@@ -20,6 +20,8 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
     //private var homographyMatrix: [NSNumber]? = nil  // Store computed matrix for reuse
     @Published var homographyMatrix: [NSNumber]? = nil
     
+    @Published var isTappingEnabled = false
+    
     func startSession(in view: UIView) {
         session.sessionPreset = .high
 
@@ -80,7 +82,8 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
     }
 
     func computeCourtHomography() {
-        let imagePoints = CourtLayout.referenceImagePoints
+        let screenSize = UIScreen.main.bounds.size
+        let imagePoints = CourtLayout.referenceImagePoints(for: screenSize)
         let courtPoints = CourtLayout.referenceCourtPoints
 
         // Compute and store raw matrix
@@ -135,10 +138,27 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
             return
         }
 
-        if let projected = HomographyHelper.project(point: location, using: matrix) {
+        // Project tap using homography
+        guard var projected = HomographyHelper.project(point: location, using: matrix) else {
+            print("❌ Projection failed")
+            return
+        }
+
+        // 🧠 Flip Y: court's origin is at near-service-line, not baseline
+        projected.y = 5.49 - projected.y
+
+        // ✅ Only accept if inside court boundaries
+        let isInBounds =
+            projected.x >= 0 && projected.x <= 8.23 &&
+            projected.y >= 0 && projected.y <= 5.49
+
+        if isInBounds {
             DispatchQueue.main.async {
                 self.lastProjectedTap = projected
+                print("✅ Projected tap accepted: \(projected)")
             }
+        } else {
+            print("⚠️ Tap ignored, outside court bounds: \(projected)")
         }
     }
 

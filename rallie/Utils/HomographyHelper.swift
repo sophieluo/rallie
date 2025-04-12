@@ -20,7 +20,7 @@ class HomographyHelper {
         let nsImagePoints = imagePoints.map { NSValue(cgPoint: $0) }
         let nsCourtPoints = courtPoints.map { NSValue(cgPoint: $0) }
 
-        return OpenCVWrapper.computeHomography(from: nsImagePoints, to: nsCourtPoints) as? [NSNumber]
+        return OpenCVWrapper.computeHomography(from: nsImagePoints, to: nsCourtPoints)
     }
 
     /// ✅ New: Project a single screen point using matrix

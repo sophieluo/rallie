@@ -1,5 +1,5 @@
 //
-//  OpenCVWrapper.m
+//  OpenCVWrapper.mm
 //  rallie
 //
 //  Created by Xiexiao_Luo on 3/29/25.
@@ -19,32 +19,32 @@ using namespace cv;
 
 @implementation OpenCVWrapper
 
-+ (nullable NSArray<NSValue *> *)computeHomographyFrom:(NSArray<NSValue *> *)imagePoints
++ (nullable NSArray<NSNumber *> *)computeHomographyFrom:(NSArray<NSValue *> *)imagePoints
                                                      to:(NSArray<NSValue *> *)courtPoints {
     if (imagePoints.count != 4 || courtPoints.count != 4) return nil;
 
-    std::vector<Point2f> src, dst;
+    std::vector<cv::Point2f> src, dst;
     for (int i = 0; i < 4; i++) {
         CGPoint sp = [imagePoints[i] CGPointValue];
         CGPoint dp = [courtPoints[i] CGPointValue];
-        src.push_back(Point2f(sp.x, sp.y));
-        dst.push_back(Point2f(dp.x, dp.y));
+        src.push_back(cv::Point2f(sp.x, sp.y));
+        dst.push_back(cv::Point2f(dp.x, dp.y));
     }
 
-    Mat H = findHomography(src, dst);
+    cv::Mat H = cv::findHomography(src, dst);
     if (H.empty()) return nil;
 
-    NSMutableArray *result = [NSMutableArray array];
+    NSMutableArray<NSNumber *> *result = [NSMutableArray arrayWithCapacity:9];
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
-            float value = (float)H.at<double>(i, j);
-            CGPoint point = CGPointMake(j, value); // encode value as .y
-            [result addObject:[NSValue valueWithCGPoint:point]];
+            double value = H.at<double>(i, j);  // make sure it's using correct precision
+            [result addObject:@(value)];
         }
     }
 
     return result;
 }
+
 
 + (nullable NSValue *)projectPoint:(CGPoint)point usingMatrix:(NSArray<NSNumber *> *)matrix {
     if (matrix.count != 9) return nil;

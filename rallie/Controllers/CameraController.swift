@@ -80,8 +80,8 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
     }
 
     func computeCourtHomography() {
-        let courtPoints = CourtLayout.referenceCourtPoints
         let imagePoints = CourtLayout.referenceImagePoints
+        let courtPoints = CourtLayout.referenceCourtPoints
 
         // Compute and store raw matrix
         guard let matrix = HomographyHelper.computeHomographyMatrix(from: imagePoints, to: courtPoints) else {
@@ -98,6 +98,10 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
             LineSegment(start: CGPoint(x: 8.23, y: 0), end: CGPoint(x: 8.23, y: 5.49)), // right sideline
             LineSegment(start: CGPoint(x: 4.115, y: 0), end: CGPoint(x: 4.115, y: 5.49))// center service line
         ]
+        
+        print("📸 Image points: \(CourtLayout.referenceImagePoints)")
+        print("📐 Court points: \(CourtLayout.referenceCourtPoints)")
+
 
         // Project lines using the computed matrix
         let transformedLines: [LineSegment] = courtLines.compactMap { line in

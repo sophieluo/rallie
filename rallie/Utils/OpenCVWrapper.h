@@ -12,8 +12,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface OpenCVWrapper : NSObject
 
-+ (nullable NSArray<NSValue *> *)computeHomographyFrom:(NSArray<NSValue *> *)imagePoints
-                                            to:(NSArray<NSValue *> *)courtPoints;
++ (nullable NSArray<NSNumber *> *)computeHomographyFrom:(NSArray<NSValue *> *)imagePoints
+                                                           to:(NSArray<NSValue *> *)courtPoints;
 
 + (nullable NSValue *)projectPoint:(CGPoint)point usingMatrix:(NSArray<NSNumber *> *)matrix;
 

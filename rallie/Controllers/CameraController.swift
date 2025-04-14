@@ -4,6 +4,7 @@ import Foundation
 import AVFoundation
 import UIKit
 import Vision
+import Combine
 
 class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     private let session = AVCaptureSession()
@@ -233,6 +234,15 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
                     handle.closeFile()
                 }
             }
+        }
+    }
+
+    let playerPositionPublisher = PassthroughSubject<CGPoint, Never>()
+
+    private func updatePlayerPosition(_ point: CGPoint) {
+        DispatchQueue.main.async {
+            self.projectedPlayerPosition = point
+            self.playerPositionPublisher.send(point) // ✅ broadcast position
         }
     }
 

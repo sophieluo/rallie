@@ -6,8 +6,23 @@ struct CameraView: View {
     @ObservedObject var cameraController: CameraController
     @Environment(\.dismiss) private var dismiss
 
+    //share csv
     @State private var showShareSheet = false
     @State private var csvURL: URL? = nil
+
+    //broadcast player position
+    @StateObject var bluetoothManager = BluetoothManager()
+    @StateObject var logicManager: LogicManager
+
+    init(cameraController: CameraController) {
+        _cameraController = ObservedObject(wrappedValue: cameraController)
+        let bluetooth = BluetoothManager()
+        _bluetoothManager = StateObject(wrappedValue: bluetooth)
+        _logicManager = StateObject(wrappedValue: LogicManager(
+            playerPositionPublisher: cameraController.$projectedPlayerPosition,
+            bluetoothManager: bluetooth
+        ))
+    }
 
     var body: some View {
         ZStack {

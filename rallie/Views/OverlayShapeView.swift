@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct OverlayShapeView: View {
+    var isActivated: Bool
+    
     var body: some View {
         GeometryReader { geometry in
             let points = OverlayHelper.computeTrapezoid(in: geometry)
@@ -19,7 +21,7 @@ struct OverlayShapeView: View {
                 path.addLine(to: points[3])
                 path.closeSubpath()
             }
-            .stroke(Color.red, lineWidth: 4)
+            .stroke(Color.red.opacity(isActivated ? 1.0 : 0.3), lineWidth: 2)
         }
         .ignoresSafeArea()
     }

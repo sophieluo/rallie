@@ -32,7 +32,11 @@ struct HomeView: View {
             Spacer()
         }
         .fullScreenCover(isPresented: $showCamera) {
-            CameraView(cameraController: cameraController)
+            if #available(iOS 16.0, *) {
+                CameraView(cameraController: cameraController)
+            } else {
+                // Fallback on earlier versions
+            }
         }
     }
 }

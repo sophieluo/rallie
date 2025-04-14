@@ -11,9 +11,12 @@ struct CameraPreviewView: UIViewControllerRepresentable {
     let controller: CameraController
 
     func makeUIViewController(context: Context) -> UIViewController {
-        let vc = UIViewController()
-        controller.startSession(in: vc.view)
-        return vc
+        let viewController = UIViewController()
+
+        let screenSize = UIScreen.main.bounds.size
+        controller.startSession(in: viewController.view, screenSize: screenSize)
+
+        return viewController
     }
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}

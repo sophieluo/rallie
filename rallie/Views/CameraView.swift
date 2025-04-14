@@ -6,29 +6,30 @@ struct CameraView: View {
 
     var body: some View {
         ZStack {
-            // Camera + tap gesture
+            // Camera feed + tap gesture
             CameraPreviewControllerWrapper(controller: cameraController)
                 .ignoresSafeArea()
-                .contentShape(Rectangle()) // needed for full-screen tap
-            
+                .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onEnded { value in
-                            let location = value.location
                             if cameraController.isTappingEnabled {
-                                cameraController.handleUserTap(location)
+                                cameraController.handleUserTap(value.location)
                             }
                         }
                 )
 
             // Alignment overlay
-            OverlayShapeView()  // draws the trapezoid
+            OverlayShapeView()
 
-            // Top-right corner: mini court
+            // Top-right: Mini court
             VStack {
                 HStack {
                     Spacer()
-                    MiniCourtView(projectedPoint: cameraController.lastProjectedTap)
+                    MiniCourtView(
+                        tappedPoint: cameraController.lastProjectedTap,
+                        playerPosition: cameraController.projectedPlayerPosition
+                    )
                         .frame(width: 140, height: 100)
                         .padding(.top, 20)
                         .padding(.trailing, 20)
@@ -36,7 +37,7 @@ struct CameraView: View {
                 Spacer()
             }
 
-            // Buttons and label
+            // UI: Dismiss button + instructions + "Let's go" button
             VStack {
                 HStack {
                     Button(action: {
@@ -61,7 +62,7 @@ struct CameraView: View {
 
                 Button(action: {
                     cameraController.isTappingEnabled = true
-                    print("Tapping is now enabled")
+                    print("✅ Tapping is now enabled")
                 }) {
                     Text("Aligned - Let's go!")
                         .font(.headline)

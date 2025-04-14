@@ -13,13 +13,14 @@ struct CameraPreviewControllerWrapper: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIViewController {
         let viewController = UIViewController()
-        controller.startSession(in: viewController.view)
+        controller.startSession(in: viewController.view, screenSize: UIScreen.main.bounds.size)
         return viewController
     }
 
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {
-        // Update layout on rotation
+        // Optional: Update camera layout on rotation if needed
         controller.updatePreviewFrame(to: uiViewController.view.bounds)
     }
 }
+
 

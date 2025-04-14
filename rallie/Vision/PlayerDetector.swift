@@ -9,33 +9,39 @@ import Vision
 import UIKit
 
 class PlayerDetector: ObservableObject {
-    @Published var boundingBox: CGRect = .zero
+    @Published var footPositionInImage: CGPoint? = nil
 
     private var request: VNDetectHumanRectanglesRequest!
     private var sequenceHandler = VNSequenceRequestHandler()
 
     init() {
         request = VNDetectHumanRectanglesRequest { [weak self] request, error in
-            guard let results = request.results as? [VNHumanObservation],
+            guard let self = self,
+                  let results = request.results as? [VNHumanObservation],
                   let first = results.first else {
                 DispatchQueue.main.async {
-                    self?.boundingBox = .zero
+                    self?.footPositionInImage = nil
                 }
                 return
             }
 
+            let bbox = first.boundingBox
+            let centerX = bbox.origin.x + bbox.width / 2
+            let bottomY = bbox.origin.y  // 👣 This is the Y at the bottom of the box
+
+            // Vision's origin is bottom-left, but we flip Y to top-left coordinate system
+            let flippedY = 1.0 - bottomY
+
             DispatchQueue.main.async {
-                self?.boundingBox = first.boundingBox
+                self.footPositionInImage = CGPoint(x: centerX, y: flippedY)
             }
         }
     }
 
     func processPixelBuffer(_ pixelBuffer: CVPixelBuffer) {
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        let imageRequestHandler = VNImageRequestHandler(ciImage: ciImage, orientation: .right)
-
+        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .right)
         do {
-            try imageRequestHandler.perform([request])
+            try handler.perform([request])
         } catch {
             print("❌ Vision error: \(error)")
         }

@@ -42,6 +42,7 @@ struct CameraView: View {
                             }
                     )
             }
+            .ignoresSafeArea()
 
             // Alignment overlay
             OverlayShapeView(isActivated: cameraController.isTappingEnabled)

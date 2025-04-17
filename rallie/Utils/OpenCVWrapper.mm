@@ -21,17 +21,17 @@ using namespace cv;
 
 + (nullable NSArray<NSNumber *> *)computeHomographyFrom:(NSArray<NSValue *> *)imagePoints
                                                      to:(NSArray<NSValue *> *)courtPoints {
-    if (imagePoints.count != 4 || courtPoints.count != 4) return nil;
+    if (imagePoints.count != 8 || courtPoints.count != 8) return nil;
 
     std::vector<cv::Point2f> src, dst;
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 8; i++) {
         CGPoint sp = [imagePoints[i] CGPointValue];
         CGPoint dp = [courtPoints[i] CGPointValue];
         src.push_back(cv::Point2f(sp.x, sp.y));
         dst.push_back(cv::Point2f(dp.x, dp.y));
     }
 
-    cv::Mat H = cv::findHomography(src, dst);
+    cv::Mat H = cv::findHomography(src, dst, RANSAC);
     if (H.empty()) return nil;
 
     NSMutableArray<NSNumber *> *result = [NSMutableArray arrayWithCapacity:9];

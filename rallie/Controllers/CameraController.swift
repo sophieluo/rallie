@@ -117,10 +117,12 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
 
         let courtLines: [LineSegment] = [
             LineSegment(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 8.23, y: 0)),
-            LineSegment(start: CGPoint(x: 0, y: 5.49), end: CGPoint(x: 8.23, y: 5.49)),
-            LineSegment(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 0, y: 5.49)),
-            LineSegment(start: CGPoint(x: 8.23, y: 0), end: CGPoint(x: 8.23, y: 5.49)),
-            LineSegment(start: CGPoint(x: 4.115, y: 0), end: CGPoint(x: 4.115, y: 5.49))
+            LineSegment(start: CGPoint(x: 8.23, y: 0), end: CGPoint(x: 8.23, y: 23.77)),
+            LineSegment(start: CGPoint(x: 8.23, y: 23.77), end: CGPoint(x: 0, y: 23.77)),
+            LineSegment(start: CGPoint(x: 0, y: 23.77), end: CGPoint(x: 0, y: 0)),
+            
+            LineSegment(start: CGPoint(x: 0, y: 18.28), end: CGPoint(x: 8.23, y: 18.28)),
+            LineSegment(start: CGPoint(x: 4.115, y: 0), end: CGPoint(x: 4.115, y: 18.28))
         ]
 
         let transformedLines = courtLines.compactMap { line -> LineSegment? in

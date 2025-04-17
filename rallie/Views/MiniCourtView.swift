@@ -13,12 +13,17 @@ struct MiniCourtView: View {
             let scaleY = geo.size.height / courtHeight
 
             ZStack {
-                // 🏟 Court lines
+                // Court lines
                 Path { path in
                     // Outer rectangle
                     path.addRect(CGRect(x: 0, y: 0,
-                                        width: courtWidth * scaleX,
-                                        height: courtHeight * scaleY))
+                                      width: courtWidth * scaleX,
+                                      height: courtHeight * scaleY))
+
+                    // Service line
+                    let serviceY = 18.28 * scaleY
+                    path.move(to: CGPoint(x: 0, y: serviceY))
+                    path.addLine(to: CGPoint(x: courtWidth * scaleX, y: serviceY))
 
                     // Center service line
                     let centerX = (courtWidth / 2) * scaleX

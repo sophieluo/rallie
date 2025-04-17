@@ -22,6 +22,20 @@ struct CourtOverlayView: View {
         }
         .allowsHitTesting(false)
     }
+    
+    static func createCourtLines(from points: [CGPoint]) -> [LineSegment] {
+        [
+            // Main court outline
+            LineSegment(start: points[0], end: points[1]), // baseline
+            LineSegment(start: points[1], end: points[2]), // right sideline
+            LineSegment(start: points[2], end: points[3]), // net line
+            LineSegment(start: points[3], end: points[0]), // left sideline
+            
+            // Service lines
+            LineSegment(start: points[4], end: points[5]), // service line
+            LineSegment(start: points[6], end: points[7]), // center service line
+        ]
+    }
 }
 
 // Helper structure to represent a line between two points

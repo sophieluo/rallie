@@ -11,31 +11,39 @@ import UIKit
 class PlayerDetector: ObservableObject {
     @Published var footPositionInImage: CGPoint? = nil
 
-    private var request: VNDetectHumanRectanglesRequest!
+    private var request: VNDetectHumanBodyPoseRequest!
     private var sequenceHandler = VNSequenceRequestHandler()
 
     init() {
-        request = VNDetectHumanRectanglesRequest { [weak self] request, error in
+        request = VNDetectHumanBodyPoseRequest { [weak self] request, error in
             guard let self = self,
-                  let results = request.results as? [VNHumanObservation],
-                  let first = results.first else {
+                  let observations = request.results as? [VNHumanBodyPoseObservation],
+                  let observation = observations.first else {
                 DispatchQueue.main.async {
                     self?.footPositionInImage = nil
                 }
                 return
             }
-
-            let bbox = first.boundingBox
-            let centerX = bbox.origin.x + bbox.width / 2
-            let bottomY = bbox.origin.y  // 👣 This is the Y at the bottom of the box
-
-            // Vision's origin is bottom-left, but we flip Y to top-left coordinate system
-            let flippedY = 1.0 - bottomY
-
+            
+            // Get ankle points (more reliable than full body box)
+            guard let rightAnkle = try? observation.recognizedPoint(.rightAnkle),
+                  rightAnkle.confidence > 0.3 else {
+                return
+            }
+            
+            // Vision coordinates are in normalized space (0,0 to 1,1)
+            let anklePosition = CGPoint(x: rightAnkle.location.x,
+                                      y: 1 - rightAnkle.location.y)  // Flip Y coordinate
+            
             DispatchQueue.main.async {
-                self.footPositionInImage = CGPoint(x: centerX, y: flippedY)
+                print("👣 Detected foot position: \(anklePosition)")
+                self.footPositionInImage = anklePosition
             }
         }
+        
+        // Configure request
+        request.maximumNumberOfPeopleToDetect = 1
+        request.confidenceThreshold = 0.3
     }
 
     func processPixelBuffer(_ pixelBuffer: CVPixelBuffer) {

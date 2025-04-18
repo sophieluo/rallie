@@ -47,79 +47,77 @@ struct CameraView: View {
             // Alignment overlay
             OverlayShapeView(isActivated: cameraController.isTappingEnabled)
 
-            // Mini court in top-right
             VStack {
-                HStack {
-                    Spacer()
-                    MiniCourtView(
-                        tappedPoint: cameraController.lastProjectedTap,
-                        playerPosition: cameraController.projectedPlayerPosition
-                    )
-                    .frame(width: 140, height: 100)
-                    .padding(.top, 20)
-                    .padding(.trailing, 20)
-                }
-                .padding(.top, 60)  // Add padding to move it higher
-                
+                // Instruction text moved to top
                 Text("Align the court to fit the red outline")
                     .foregroundColor(.white)
-                    .padding(.top, 20)
+                    .padding(.top, 40)  // Increased top padding
                 
-                Spacer()
-            }
-
-            // Buttons and label
-            VStack {
-                HStack {
-                    Button(action: {
-                        cameraController.stopSession()
-                        dismiss()
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 28))
-                            .foregroundColor(.white)
-                            .padding()
-                    }
-                    Spacer()
-                }
-
-                Spacer()
-
-                // Only show alignment button if not yet aligned
-                if !cameraController.isTappingEnabled {
-                    Button(action: {
-                        cameraController.isTappingEnabled = true
-                        print("✅ Tapping is now enabled")
-                    }) {
-                        Text("Aligned - Let's go!")
-                            .font(.headline)
-                            .padding()
-                            .background(Color.blue.opacity(0.8))
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                    }
-                    .padding(.bottom, 10)
-                }
-
-                // Export CSV button in bottom right
+                // Mini court in top-right with Export CSV
                 HStack {
                     Spacer()
-                    Button("Export CSV") {
-                        if let fileURL = getCSVURL() {
-                            self.csvURL = fileURL
-                            self.showShareSheet = true
+                    VStack(alignment: .trailing, spacing: 10) {  // Added spacing
+                        MiniCourtView(
+                            tappedPoint: cameraController.lastProjectedTap,
+                            playerPosition: cameraController.projectedPlayerPosition
+                        )
+                        .frame(width: 140, height: 100)
+                        
+                        // Export CSV button moved up
+                        Button("Export CSV") {
+                            if let fileURL = getCSVURL() {
+                                self.csvURL = fileURL
+                                self.showShareSheet = true
+                            }
                         }
+                        .foregroundColor(.white)
+                        .underline()
                     }
-                    .foregroundColor(.white)
-                    .underline()
+                    .padding(.top, 20)
                     .padding(.trailing, 20)
-                    .padding(.bottom, 20)
                 }
-                .sheet(isPresented: $showShareSheet) {
-                    if let file = csvURL {
-                        ShareSheet(activityItems: [file])
+
+                Spacer()
+
+                // Buttons at bottom
+                VStack {
+                    // Close button
+                    HStack {
+                        Button(action: {
+                            cameraController.stopSession()
+                            dismiss()
+                        }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 28))
+                                .foregroundColor(.white)
+                                .padding()
+                        }
+                        Spacer()
+                    }
+
+                    Spacer()
+
+                    // Alignment button moved up
+                    if !cameraController.isTappingEnabled {
+                        Button(action: {
+                            cameraController.isTappingEnabled = true
+                            print("✅ Tapping is now enabled")
+                        }) {
+                            Text("Aligned - Let's go!")
+                                .font(.headline)
+                                .padding()
+                                .background(Color.blue.opacity(0.8))
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
+                        .padding(.bottom, 50)  // Increased bottom padding
                     }
                 }
+            }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let file = csvURL {
+                ShareSheet(activityItems: [file])
             }
         }
         .onAppear {

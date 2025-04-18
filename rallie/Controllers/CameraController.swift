@@ -151,7 +151,7 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         }
         
         playerDetector.processPixelBuffer(pixelBuffer)
-
+        
         DispatchQueue.main.async { [weak self] in
             guard let self = self,
                   let matrix = self.homographyMatrix else {
@@ -160,18 +160,24 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
             }
             
             guard let footPos = self.playerDetector.footPositionInImage else {
-                print("ℹ️ No foot position detected")
+                // Only print every few seconds to avoid log spam
+                if let last = self.lastLogTime, Date().timeIntervalSince(last) > 2.0 {
+                    print("ℹ️ No foot position detected")
+                    self.lastLogTime = Date()
+                }
                 return
             }
-
+            
             let screenSize = UIScreen.main.bounds.size
             let footPixel = CGPoint(x: footPos.x * screenSize.width,
                                   y: footPos.y * screenSize.height)
-
+            print("📍 Raw foot position: \(footPixel)")
+            
             if let projected = HomographyHelper.project(point: footPixel, using: matrix) {
                 self.projectedPlayerPosition = projected
                 self.logPlayerPositionCSV(projected)
                 print("👟 Projected feet: \(projected)")
+                self.updatePlayerPosition(projected)
             } else {
                 print("❌ Failed to project foot position")
             }

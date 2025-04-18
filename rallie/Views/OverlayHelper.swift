@@ -1,6 +1,6 @@
 func computeCourtPoints(screenWidth: CGFloat, screenHeight: CGFloat) -> [CGPoint] {
     let topY = screenHeight * 0.40  // Moved even higher
-    let bottomY = screenHeight * 0.85
+    let bottomY = screenHeight * 0.90
     let topInset = screenWidth * 0.40  // Increased more for even sharper angle
     let bottomInset = screenWidth * 0.08  // Decreased further for wider base
     

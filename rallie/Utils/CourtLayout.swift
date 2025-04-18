@@ -13,16 +13,16 @@ struct CourtLayout {
     static let screenHeight: CGFloat = 390
 
     static func referenceImagePoints(for screenSize: CGSize) -> [CGPoint] {
-        let topY = screenSize.height * 0.65  // Keep the same height
-        let bottomY = screenSize.height * 0.85
-        let topInset = screenSize.width * 0.30  // Decreased for wider angle (was 0.35)
-        let bottomInset = screenSize.width * 0.15  // Increased to narrow the base (was 0.03)
+        let topY = screenSize.height * 0.65  // Moved top line down (was 0.55)
+        let bottomY = screenSize.height * 0.88  // Keep same
+        let topInset = screenSize.width * 0.35  // Keep same
+        let bottomInset = screenSize.width * 0.05  // Keep same
         
         // Calculate service line Y position (between top and bottom)
-        let serviceLineY = topY + (bottomY - topY) * 0.40
+        let serviceLineY = topY + (bottomY - topY) * 0.35  // Moved service line up (was 0.60)
         
-        // Calculate service line insets
-        let serviceLineInset = bottomInset + (topInset - bottomInset) * 0.70
+        // Calculate service line insets (proportional between top and bottom insets)
+        let serviceLineInset = bottomInset + (topInset - bottomInset) * 0.60  // Adjusted for better perspective
         let centerX = screenSize.width / 2
         
         return [

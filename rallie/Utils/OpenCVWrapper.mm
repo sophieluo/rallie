@@ -31,13 +31,13 @@ using namespace cv;
         dst.push_back(cv::Point2f(dp.x, dp.y));
     }
 
-    cv::Mat H = cv::findHomography(src, dst, RANSAC);
+    cv::Mat H = cv::findHomography(src, dst, cv::RANSAC);
     if (H.empty()) return nil;
 
     NSMutableArray<NSNumber *> *result = [NSMutableArray arrayWithCapacity:9];
     for (int i = 0; i < 3; ++i) {
         for (int j = 0; j < 3; ++j) {
-            double value = H.at<double>(i, j);  // make sure it's using correct precision
+            double value = H.at<double>(i, j);
             [result addObject:@(value)];
         }
     }

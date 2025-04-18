@@ -13,16 +13,13 @@ struct CourtLayout {
     static let screenHeight: CGFloat = 390
 
     static func referenceImagePoints(for screenSize: CGSize) -> [CGPoint] {
-        let topY = screenSize.height * 0.65  // Moved top line down (was 0.55)
-        let bottomY = screenSize.height * 0.88  // Keep same
-        let topInset = screenSize.width * 0.35  // Keep same
-        let bottomInset = screenSize.width * 0.05  // Keep same
+        let topY = screenSize.height * 0.65  
+        let bottomY = screenSize.height * 0.88  
+        let topInset = screenSize.width * 0.35  
+        let bottomInset = screenSize.width * 0.05  
         
-        // Calculate service line Y position (between top and bottom)
-        let serviceLineY = topY + (bottomY - topY) * 0.35  // Moved service line up (was 0.60)
-        
-        // Calculate service line insets (proportional between top and bottom insets)
-        let serviceLineInset = bottomInset + (topInset - bottomInset) * 0.60  // Adjusted for better perspective
+        let serviceLineY = topY + (bottomY - topY) * 0.35  
+        let serviceLineInset = bottomInset + (topInset - bottomInset) * 0.60  
         let centerX = screenSize.width / 2
         
         return [
@@ -41,19 +38,20 @@ struct CourtLayout {
     }
 
     // Tennis court dimensions in meters
-    // Standard singles court is 23.77m x 8.23m
+    // Half court is 11.885m long (baseline to net) x 8.23m wide
+    // Using coordinate system where (0,0) is at net, Y increases towards baseline
     static let referenceCourtPoints: [CGPoint] = [
-        // Main court corners (original 4 points)
-        CGPoint(x: 0, y: 0),          // 0: bottom left (baseline)
-        CGPoint(x: 8.23, y: 0),       // 1: bottom right (baseline)
-        CGPoint(x: 8.23, y: 23.77),   // 2: top right (net)
-        CGPoint(x: 0, y: 23.77),      // 3: top left (net)
+        // Main court corners
+        CGPoint(x: 0, y: 11.885),      // 0: bottom left (baseline)
+        CGPoint(x: 8.23, y: 11.885),   // 1: bottom right (baseline)
+        CGPoint(x: 8.23, y: 0),        // 2: top right (net)
+        CGPoint(x: 0, y: 0),           // 3: top left (net)
         
-        // Service line intersections (new 4 points)
-        CGPoint(x: 0, y: 18.28),      // 4: left service (6.4m from baseline)
-        CGPoint(x: 8.23, y: 18.28),   // 5: right service
-        CGPoint(x: 4.115, y: 18.28),  // 6: center service (back)
-        CGPoint(x: 4.115, y: 18.28)   // 7: center service (at service line)
+        // Service line intersections (6.40m from net)
+        CGPoint(x: 0, y: 6.40),        // 4: left service
+        CGPoint(x: 8.23, y: 6.40),     // 5: right service
+        CGPoint(x: 4.115, y: 6.40),    // 6: center service (back)
+        CGPoint(x: 4.115, y: 6.40)     // 7: center service (at service line)
     ]
 }
 

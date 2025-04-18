@@ -115,14 +115,21 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         }
         self.homographyMatrix = matrix
 
+        // Update court lines to match new coordinate system (0,0 at net)
         let courtLines: [LineSegment] = [
-            LineSegment(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 8.23, y: 0)),
-            LineSegment(start: CGPoint(x: 8.23, y: 0), end: CGPoint(x: 8.23, y: 23.77)),
-            LineSegment(start: CGPoint(x: 8.23, y: 23.77), end: CGPoint(x: 0, y: 23.77)),
-            LineSegment(start: CGPoint(x: 0, y: 23.77), end: CGPoint(x: 0, y: 0)),
+            // Baseline
+            LineSegment(start: CGPoint(x: 0, y: 11.885), end: CGPoint(x: 8.23, y: 11.885)),
+            // Right sideline
+            LineSegment(start: CGPoint(x: 8.23, y: 11.885), end: CGPoint(x: 8.23, y: 0)),
+            // Net line
+            LineSegment(start: CGPoint(x: 8.23, y: 0), end: CGPoint(x: 0, y: 0)),
+            // Left sideline
+            LineSegment(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 0, y: 11.885)),
             
-            LineSegment(start: CGPoint(x: 0, y: 18.28), end: CGPoint(x: 8.23, y: 18.28)),
-            LineSegment(start: CGPoint(x: 4.115, y: 0), end: CGPoint(x: 4.115, y: 18.28))
+            // Service line
+            LineSegment(start: CGPoint(x: 0, y: 6.40), end: CGPoint(x: 8.23, y: 6.40)),
+            // Center line (from net to service line)
+            LineSegment(start: CGPoint(x: 4.115, y: 0), end: CGPoint(x: 4.115, y: 6.40))
         ]
 
         let transformedLines = courtLines.compactMap { line -> LineSegment? in
@@ -187,14 +194,13 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
     // MARK: - Tap Handling
     func handleUserTap(_ location: CGPoint) {
         guard let matrix = homographyMatrix,
-              var projected = HomographyHelper.project(point: location, using: matrix) else {
+              let projected = HomographyHelper.project(point: location, using: matrix) else {
             print("❌ Tap projection failed")
             return
         }
 
-        projected.y = 5.49 - projected.y
-
-        if (0...8.23).contains(projected.x) && (0...5.49).contains(projected.y) {
+        // Remove the Y-flip since our coordinate systems now match
+        if (0...8.23).contains(projected.x) && (0...11.885).contains(projected.y) {
             DispatchQueue.main.async {
                 self.lastProjectedTap = projected
                 print("✅ Tap accepted: \(projected)")

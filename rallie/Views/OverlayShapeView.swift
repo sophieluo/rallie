@@ -26,9 +26,10 @@ struct OverlayShapeView: View {
                 path.move(to: points[4])
                 path.addLine(to: points[5])
                 
-                // Center service line
-                path.move(to: points[6])
-                path.addLine(to: points[7])
+                // Center service line (from net to service line)
+                let centerX = (points[2].x + points[3].x) / 2  // Center X at net
+                path.move(to: CGPoint(x: centerX, y: points[2].y))  // Start at net
+                path.addLine(to: points[6])  // End at service line
             }
             .stroke(Color.red.opacity(isActivated ? 1.0 : 0.3), lineWidth: 2)
             

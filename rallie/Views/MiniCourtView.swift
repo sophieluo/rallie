@@ -4,8 +4,9 @@ struct MiniCourtView: View {
     let tappedPoint: CGPoint?           // 🟢 From user tap
     let playerPosition: CGPoint?        // 🎾 From Vision
 
-    let courtWidth: CGFloat = 8.23
-    let courtHeight: CGFloat = 5.49
+    let courtWidth: CGFloat = 8.23      // Court width in meters
+    let courtHeight: CGFloat = 11.885   // Court height in meters (baseline to net)
+    let serviceLineY: CGFloat = 6.40    // Service line distance from net
 
     var body: some View {
         GeometryReader { geo in
@@ -21,14 +22,14 @@ struct MiniCourtView: View {
                                       height: courtHeight * scaleY))
 
                     // Service line
-                    let serviceY = 18.28 * scaleY
+                    let serviceY = serviceLineY * scaleY
                     path.move(to: CGPoint(x: 0, y: serviceY))
                     path.addLine(to: CGPoint(x: courtWidth * scaleX, y: serviceY))
 
-                    // Center service line
+                    // Center line (from net to service line)
                     let centerX = (courtWidth / 2) * scaleX
-                    path.move(to: CGPoint(x: centerX, y: 0))
-                    path.addLine(to: CGPoint(x: centerX, y: courtHeight * scaleY))
+                    path.move(to: CGPoint(x: centerX, y: 0))  // Start at net
+                    path.addLine(to: CGPoint(x: centerX, y: serviceLineY * scaleY))  // End at service line
                 }
                 .stroke(Color.white.opacity(0.9), lineWidth: 1)
 

@@ -45,7 +45,10 @@ struct CameraView: View {
             .ignoresSafeArea()
 
             // Alignment overlay
-            OverlayShapeView(isActivated: cameraController.isTappingEnabled)
+            OverlayShapeView(
+                isActivated: cameraController.isTappingEnabled,
+                playerDetector: cameraController.playerDetector
+            )
 
             VStack {
                 // Instruction text moved to top

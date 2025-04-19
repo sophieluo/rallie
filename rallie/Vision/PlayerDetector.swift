@@ -39,10 +39,9 @@ class PlayerDetector: ObservableObject {
                     let bestFoot = rightFoot > leftFoot ? recognizedPoints[.rightAnkle] : 
                                                          recognizedPoints[.leftAnkle]
                     if let footPoint = bestFoot {
-                        // Change coordinate handling to match tap coordinates
-                        // Instead of flipping Y, we'll swap X and Y for landscape orientation
-                        let anklePosition = CGPoint(x: 1 - footPoint.location.y,  // Swap and invert Y to X
-                                                  y: footPoint.location.x)        // Use X as Y
+                        // Convert Vision coordinates (0-1) to pixel coordinates
+                        let anklePosition = CGPoint(x: footPoint.location.x,
+                                                  y: footPoint.location.y)
                         
                         print("👣 Best foot position - raw: \(footPoint.location), transformed: \(anklePosition), confidence: \(footPoint.confidence)")
                         

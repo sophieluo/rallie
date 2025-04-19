@@ -9,6 +9,7 @@ struct CameraView: View {
     //share csv
     @State private var showShareSheet = false
     @State private var csvURL: URL? = nil
+    @State private var showExportAlert = false
 
     //broadcast player position
     @StateObject var bluetoothManager = BluetoothManager()
@@ -67,14 +68,31 @@ struct CameraView: View {
                         .frame(width: 140, height: 100)
                         
                         // Export CSV button moved up
-                        Button("Export CSV") {
+                        Button {
                             if let fileURL = getCSVURL() {
                                 self.csvURL = fileURL
                                 self.showShareSheet = true
+                                print("📁 CSV file location: \(fileURL.path)")
+                            } else {
+                                print("❌ No CSV file found")
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "square.and.arrow.up")
+                                Text("Export CSV")
+                            }
+                            .foregroundColor(.white)
+                            .underline()
+                        }
+                        .alert("CSV Export", isPresented: $showExportAlert) {
+                            Button("OK", role: .cancel) { }
+                        } message: {
+                            if let url = csvURL {
+                                Text("File saved at:\n\(url.path)\n\nUse the share sheet to save to Files app or share via AirDrop.")
+                            } else {
+                                Text("No data recorded yet.")
                             }
                         }
-                        .foregroundColor(.white)
-                        .underline()
                     }
                     .padding(.top, 20)
                     .padding(.trailing, 20)
@@ -147,6 +165,14 @@ struct CameraView: View {
             return FileManager.default.fileExists(atPath: fileURL.path) ? fileURL : nil
         }
         return nil
+    }
+
+    private func checkCSVContents() -> Bool {
+        guard let fileURL = getCSVURL(),
+              let contents = try? String(contentsOf: fileURL, encoding: .utf8) else {
+            return false
+        }
+        return !contents.isEmpty
     }
 }
 

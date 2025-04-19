@@ -115,26 +115,29 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         }
         self.homographyMatrix = matrix
 
-        // Update court lines to match new coordinate system (0,0 at net)
+        // Get trapezoid corners from the image points (first 4 points)
+        let trapezoidCorners = Array(imagePoints.prefix(4))
+
+        // Update court lines to match coordinate system (0,0 at baseline's left corner)
         let courtLines: [LineSegment] = [
-            // Baseline
-            LineSegment(start: CGPoint(x: 0, y: 11.885), end: CGPoint(x: 8.23, y: 11.885)),
+            // Baseline (y = 0)
+            LineSegment(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 8.23, y: 0)),
             // Right sideline
-            LineSegment(start: CGPoint(x: 8.23, y: 11.885), end: CGPoint(x: 8.23, y: 0)),
-            // Net line
-            LineSegment(start: CGPoint(x: 8.23, y: 0), end: CGPoint(x: 0, y: 0)),
+            LineSegment(start: CGPoint(x: 8.23, y: 0), end: CGPoint(x: 8.23, y: 11.885)),
+            // Net line (y = 11.885)
+            LineSegment(start: CGPoint(x: 8.23, y: 11.885), end: CGPoint(x: 0, y: 11.885)),
             // Left sideline
-            LineSegment(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 0, y: 11.885)),
+            LineSegment(start: CGPoint(x: 0, y: 11.885), end: CGPoint(x: 0, y: 0)),
             
-            // Service line
+            // Service line (y = 6.40)
             LineSegment(start: CGPoint(x: 0, y: 6.40), end: CGPoint(x: 8.23, y: 6.40)),
-            // Center line (from net to service line)
+            // Center line (from baseline to service line)
             LineSegment(start: CGPoint(x: 4.115, y: 0), end: CGPoint(x: 4.115, y: 6.40))
         ]
 
         let transformedLines = courtLines.compactMap { line -> LineSegment? in
-            guard let p1 = HomographyHelper.project(point: line.start, using: matrix),
-                  let p2 = HomographyHelper.project(point: line.end, using: matrix) else {
+            guard let p1 = HomographyHelper.project(point: line.start, using: matrix, trapezoidCorners: trapezoidCorners),
+                  let p2 = HomographyHelper.project(point: line.end, using: matrix, trapezoidCorners: trapezoidCorners) else {
                 return nil
             }
             return LineSegment(start: p1, end: p2)
@@ -166,6 +169,8 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
                 return
             }
             
+            let trapezoidCorners = CourtLayout.referenceImagePoints(for: self.previewLayer?.bounds.size ?? .zero).prefix(4)
+            
             guard let footPos = self.playerDetector.footPositionInImage else {
                 // Only print every few seconds to avoid log spam
                 if let last = self.lastLogTime, Date().timeIntervalSince(last) > 2.0 {
@@ -175,31 +180,29 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
                 return
             }
             
-            let screenSize = UIScreen.main.bounds.size
-            let footPixel = CGPoint(x: footPos.x * screenSize.width,
-                                  y: footPos.y * screenSize.height)
-            print("📍 Raw foot position: \(footPixel)")
-            
-            if let projected = HomographyHelper.project(point: footPixel, using: matrix) {
+            if let projected = HomographyHelper.project(point: footPos, using: matrix, trapezoidCorners: Array(trapezoidCorners)) {
                 self.projectedPlayerPosition = projected
                 self.logPlayerPositionCSV(projected)
                 print("👟 Projected feet: \(projected)")
                 self.updatePlayerPosition(projected)
-            } else {
-                print("❌ Failed to project foot position")
             }
         }
     }
 
     // MARK: - Tap Handling
     func handleUserTap(_ location: CGPoint) {
-        guard let matrix = homographyMatrix,
-              let projected = HomographyHelper.project(point: location, using: matrix) else {
+        guard let matrix = homographyMatrix else {
+            print("❌ Missing homography matrix")
+            return
+        }
+        
+        let trapezoidCorners = CourtLayout.referenceImagePoints(for: previewLayer?.bounds.size ?? .zero).prefix(4)
+        
+        guard let projected = HomographyHelper.project(point: location, using: matrix, trapezoidCorners: Array(trapezoidCorners)) else {
             print("❌ Tap projection failed")
             return
         }
 
-        // Remove the Y-flip since our coordinate systems now match
         if (0...8.23).contains(projected.x) && (0...11.885).contains(projected.y) {
             DispatchQueue.main.async {
                 self.lastProjectedTap = projected
@@ -233,22 +236,41 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         let row = "\(timestamp),\(point.x),\(point.y)\n"
         let fileName = "player_positions.csv"
 
-        if let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-            let fileURL = dir.appendingPathComponent(fileName)
+        guard let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            print("❌ Failed to get document directory")
+            return
+        }
 
+        let fileURL = dir.appendingPathComponent(fileName)
+        print("📝 CSV Path: \(fileURL.path)")
+
+        do {
             if !FileManager.default.fileExists(atPath: fileURL.path) {
+                // Create new file with header
                 let header = "timestamp,x,y\n"
-                try? (header + row).write(to: fileURL, atomically: true, encoding: .utf8)
+                try (header + row).write(to: fileURL, atomically: true, encoding: .utf8)
+                print("✅ Created new CSV file with header")
             } else {
-                if let handle = try? FileHandle(forWritingTo: fileURL) {
-                    handle.seekToEndOfFile()
-                    if let data = row.data(using: .utf8) {
-                        handle.write(data)
-                    }
-                    handle.closeFile()
+                // Append to existing file
+                let handle = try FileHandle(forWritingTo: fileURL)
+                defer { handle.closeFile() } // Ensures file is closed even if an error occurs
+                
+                handle.seekToEndOfFile()
+                if let data = row.data(using: .utf8) {
+                    handle.write(data)
+                    print("✅ Appended position: \(point.x), \(point.y)")
                 }
             }
+        } catch {
+            print("❌ CSV write error: \(error.localizedDescription)")
         }
+    }
+
+    // Add this helper method to get the CSV file URL
+    func getCSVFileURL() -> URL? {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+            .first?
+            .appendingPathComponent("player_positions.csv")
     }
 
     let playerPositionPublisher = PassthroughSubject<CGPoint, Never>()

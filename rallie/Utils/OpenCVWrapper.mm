@@ -27,7 +27,11 @@ using namespace cv;
     for (int i = 0; i < 8; i++) {
         CGPoint sp = [imagePoints[i] CGPointValue];
         CGPoint dp = [courtPoints[i] CGPointValue];
+        
+        // Use raw image points (no normalization needed)
         src.push_back(cv::Point2f(sp.x, sp.y));
+        
+        // Court points in meters
         dst.push_back(cv::Point2f(dp.x, dp.y));
     }
 
@@ -49,10 +53,10 @@ using namespace cv;
 + (nullable NSValue *)projectPoint:(CGPoint)point usingMatrix:(NSArray<NSNumber *> *)matrix {
     if (matrix.count != 9) return nil;
 
-    Mat H(3, 3, CV_32F);
+    Mat H(3, 3, CV_64F);  // Changed to double precision
     for (int i = 0; i < 9; ++i) {
-        float value = [matrix[i] floatValue];
-        H.at<float>(i / 3, i % 3) = value;
+        double value = [matrix[i] doubleValue];
+        H.at<double>(i / 3, i % 3) = value;
     }
 
     std::vector<Point2f> input = { Point2f(point.x, point.y) };

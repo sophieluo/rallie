@@ -40,19 +40,38 @@ class HomographyHelper {
     }
 
     /// ✅ New: Project a single screen point using matrix
-    static func project(point: CGPoint, using matrix: [NSNumber]) -> CGPoint? {
-        guard matrix.count == 9 else {
-            print("❌ Invalid homography matrix size")
+    static func project(point: CGPoint, using matrix: [NSNumber], trapezoidCorners: [CGPoint]) -> CGPoint? {
+        // First check if point is within or very close to trapezoid
+        guard isPointInTrapezoid(point, corners: trapezoidCorners) else {
+            print("⚠️ Tap outside trapezoid: \(point)")
             return nil
         }
         
+        // Project the raw point coordinates
         guard let projected = OpenCVWrapper.projectPoint(point, usingMatrix: matrix) else {
             print("❌ Point projection failed for point: \(point)")
             return nil
         }
         
-        print("📍 Projected point \(point) to \(projected.cgPointValue)")
-        return projected.cgPointValue
+        print("📍 Projected point \(point) to \(projected)")
+        return projected as! CGPoint
+    }
+
+    static func isPointInTrapezoid(_ point: CGPoint, corners: [CGPoint]) -> Bool {
+        // Create a path from the corners
+        let path = UIBezierPath()
+        path.move(to: corners[0])
+        for i in 1...3 {
+            path.addLine(to: corners[i])
+        }
+        path.close()
+        
+        // Add some tolerance for edge taps
+        let tolerance: CGFloat = 5.0
+        let expandedPath = UIBezierPath(cgPath: path.cgPath)
+        expandedPath.lineWidth = tolerance * 2
+        
+        return expandedPath.contains(point)
     }
 }
 

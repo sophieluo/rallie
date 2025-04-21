@@ -27,7 +27,7 @@ class PlayerDetector: ObservableObject {
             }
             
             // For back-facing detection, focus on these more reliable points
-            let confidenceThreshold: CGFloat = 0.5
+            let confidenceThreshold: CGFloat = 0.5  // Consider making this adjustable
             
             if let recognizedPoints = try? observation.recognizedPoints(.all) {
                 // First check if we have at least one foot with good confidence
@@ -40,8 +40,10 @@ class PlayerDetector: ObservableObject {
                                                          recognizedPoints[.leftAnkle]
                     if let footPoint = bestFoot {
                         // Convert Vision coordinates (0-1) to pixel coordinates
-                        let anklePosition = CGPoint(x: footPoint.location.x,
-                                                  y: footPoint.location.y)
+                        let imageWidth = UIScreen.main.bounds.width
+                        let imageHeight = UIScreen.main.bounds.height
+                        let anklePosition = CGPoint(x: footPoint.location.x * imageWidth,
+                                                    y: (1 - footPoint.location.y) * imageHeight)
                         
                         print("👣 Best foot position - raw: \(footPoint.location), transformed: \(anklePosition), confidence: \(footPoint.confidence)")
                         

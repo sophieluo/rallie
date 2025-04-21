@@ -43,10 +43,13 @@ struct CommandLookup {
 
         // Check bounds (ensure point is on court)
         guard (0..<cols).contains(col), (0..<rows).contains(row) else {
+            print("❌ Point \(point) is out of bounds")
             return nil
         }
 
-        return row * cols + col // zoneID from 0 to 15
+        let zoneID = row * cols + col
+        print("📍 Point \(point) mapped to zone \(zoneID) (col: \(col), row: \(row))")
+        return zoneID
     }
 }
 

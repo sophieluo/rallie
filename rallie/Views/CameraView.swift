@@ -45,29 +45,37 @@ struct CameraView: View {
             }
             .ignoresSafeArea()
 
-            // Alignment overlay
-            OverlayShapeView(
-                isActivated: cameraController.isTappingEnabled,
-                playerDetector: cameraController.playerDetector
-            )
+            // Show either calibration points or court overlay based on mode
+            if cameraController.isCalibrationMode {
+                CalibrationPointsView(cameraController: cameraController)
+            } else {
+                // Original court overlay (only shown after calibration)
+                OverlayShapeView(
+                    isActivated: cameraController.isTappingEnabled,
+                    playerDetector: cameraController.playerDetector,
+                    cameraController: cameraController
+                )
+            }
 
             VStack {
-                // Instruction text moved to top
-                Text("Align the court to fit the red outline")
+                // Instruction text based on current mode
+                Text(cameraController.isCalibrationMode ? 
+                     "Drag the colored points to the 4 corners of the court" : 
+                     "Align the court to fit the red outline")
                     .foregroundColor(.white)
-                    .padding(.top, 40)  // Increased top padding
+                    .padding(.top, 40)
                 
                 // Mini court in top-right with Export CSV
                 HStack {
                     Spacer()
-                    VStack(alignment: .trailing, spacing: 10) {  // Added spacing
+                    VStack(alignment: .trailing, spacing: 10) {
                         MiniCourtView(
                             tappedPoint: cameraController.lastProjectedTap,
                             playerPosition: cameraController.projectedPlayerPosition
                         )
                         .frame(width: 140, height: 100)
                         
-                        // Export CSV button moved up
+                        // Export CSV button
                         Button {
                             if let fileURL = getCSVURL() {
                                 self.csvURL = fileURL
@@ -105,6 +113,8 @@ struct CameraView: View {
                     // Close button
                     HStack {
                         Button(action: {
+                            // Call the method directly on the controller instance
+                            // This should help resolve the stopSession error
                             cameraController.stopSession()
                             dismiss()
                         }) {
@@ -118,8 +128,22 @@ struct CameraView: View {
 
                     Spacer()
 
-                    // Alignment button moved up
-                    if !cameraController.isTappingEnabled {
+                    // Calibration/Alignment button
+                    if cameraController.isCalibrationMode {
+                        Button(action: {
+                            cameraController.computeHomographyFromCalibrationPoints()
+                            cameraController.isCalibrationMode = false
+                            print("✅ Calibration completed")
+                        }) {
+                            Text("Calibration Complete")
+                                .font(.headline)
+                                .padding()
+                                .background(Color.green.opacity(0.8))
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
+                        .padding(.bottom, 100)
+                    } else if !cameraController.isTappingEnabled {
                         Button(action: {
                             cameraController.isTappingEnabled = true
                             print("✅ Tapping is now enabled")
@@ -131,7 +155,7 @@ struct CameraView: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(10)
                         }
-                        .padding(.bottom, 50)  // Increased bottom padding
+                        .padding(.bottom, 50)
                     }
                 }
             }
@@ -187,4 +211,3 @@ struct ShareSheet: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
-

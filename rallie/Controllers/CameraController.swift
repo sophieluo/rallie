@@ -21,6 +21,10 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
     @Published var homographyMatrix: [NSNumber]? = nil
     @Published var projectedPlayerPosition: CGPoint? = nil
     @Published var isTappingEnabled = false
+    
+    // MARK: - Calibration Points
+    @Published var calibrationPoints: [CGPoint] = []
+    @Published var isCalibrationMode = true
 
     // MARK: - Setup
     func startSession(in view: UIView, screenSize: CGSize) {
@@ -86,7 +90,8 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
                 print("✅ Capture session started")
             }
 
-            computeCourtHomography(for: screenSize)
+            // Initialize calibration points instead of computing homography directly
+            initializeCalibrationPoints(for: screenSize)
             
         } catch {
             print("❌ Camera setup error: \(error.localizedDescription)")
@@ -104,21 +109,59 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         print("✅ Camera session stopped")
     }
 
-    // MARK: - Homography
-    func computeCourtHomography(for screenSize: CGSize) {
-        let imagePoints = CourtLayout.referenceImagePoints(for: screenSize)
-        let courtPoints = CourtLayout.referenceCourtPoints
+    // MARK: - Calibration Points
+    func initializeCalibrationPoints(for screenSize: CGSize) {
+        // Initialize with default points based on screen size
+        let topY = screenSize.height * 0.45  
+        let bottomY = screenSize.height * 0.88
+        let topInset = screenSize.width * 0.35  
+        let bottomInset = screenSize.width * 0.05
+        
+        calibrationPoints = [
+            CGPoint(x: bottomInset, y: bottomY),         // bottom left
+            CGPoint(x: screenSize.width - bottomInset, y: bottomY), // bottom right
+            CGPoint(x: screenSize.width - topInset, y: topY),  // top right
+            CGPoint(x: topInset, y: topY),               // top left
+        ]
+        
+        // Calculate service line points
+        let serviceLineY = topY + (bottomY - topY) * 0.35
+        let leftX1 = bottomInset
+        let leftX2 = topInset
+        let leftY1 = bottomY
+        let leftY2 = topY
+        
+        let rightX1 = screenSize.width - bottomInset
+        let rightX2 = screenSize.width - topInset
+        let rightY1 = bottomY
+        let rightY2 = topY
+        
+        let leftServiceX = leftX1 + (leftX2 - leftX1) * ((serviceLineY - leftY1) / (leftY2 - leftY1))
+        let rightServiceX = rightX1 + (rightX2 - rightX1) * ((serviceLineY - rightY1) / (rightY2 - rightY1))
+        let centerX = (leftServiceX + rightServiceX) / 2
+        
+        // Add service line points
+        calibrationPoints.append(CGPoint(x: leftServiceX, y: serviceLineY))    // left service
+        calibrationPoints.append(CGPoint(x: rightServiceX, y: serviceLineY))   // right service
+        calibrationPoints.append(CGPoint(x: centerX, y: serviceLineY))         // center service
+        calibrationPoints.append(CGPoint(x: centerX, y: serviceLineY))         // center service (duplicate)
+    }
 
-        guard let matrix = HomographyHelper.computeHomographyMatrix(from: imagePoints, to: courtPoints) else {
+    func computeHomographyFromCalibrationPoints() {
+        guard calibrationPoints.count >= 4 else {
+            print("❌ Not enough calibration points")
+            return
+        }
+        
+        let courtPoints = CourtLayout.referenceCourtPoints
+        
+        guard let matrix = HomographyHelper.computeHomographyMatrix(from: calibrationPoints, to: courtPoints) else {
             print("❌ Homography matrix computation failed.")
             return
         }
         self.homographyMatrix = matrix
-
-        // Get trapezoid corners from the image points (first 4 points)
-        let trapezoidCorners = Array(imagePoints.prefix(4))
-
-        // Update court lines to match coordinate system (0,0 at baseline's left corner)
+        
+        // Update court lines using the new homography
         let courtLines: [LineSegment] = [
             // Baseline (y = 0)
             LineSegment(start: CGPoint(x: 0, y: 0), end: CGPoint(x: 8.23, y: 0)),
@@ -128,24 +171,24 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
             LineSegment(start: CGPoint(x: 8.23, y: 11.885), end: CGPoint(x: 0, y: 11.885)),
             // Left sideline
             LineSegment(start: CGPoint(x: 0, y: 11.885), end: CGPoint(x: 0, y: 0)),
-            
-            // Service line (y = 6.40)
-            LineSegment(start: CGPoint(x: 0, y: 6.40), end: CGPoint(x: 8.23, y: 6.40)),
-            // Center line (from baseline to service line)
-            LineSegment(start: CGPoint(x: 4.115, y: 0), end: CGPoint(x: 4.115, y: 6.40))
         ]
-
+        
         let transformedLines = courtLines.compactMap { line -> LineSegment? in
-            guard let p1 = HomographyHelper.project(point: line.start, using: matrix, trapezoidCorners: trapezoidCorners),
-                  let p2 = HomographyHelper.project(point: line.end, using: matrix, trapezoidCorners: trapezoidCorners) else {
+            guard let p1 = HomographyHelper.project(point: line.start, using: matrix, trapezoidCorners: Array(calibrationPoints.prefix(4))),
+                  let p2 = HomographyHelper.project(point: line.end, using: matrix, trapezoidCorners: Array(calibrationPoints.prefix(4))) else {
                 return nil
             }
             return LineSegment(start: p1, end: p2)
         }
-
+        
         DispatchQueue.main.async {
             self.projectedCourtLines = transformedLines
         }
+    }
+
+    // MARK: - Homography
+    func computeCourtHomography(for screenSize: CGSize) {
+        // Removed the original implementation
     }
 
     // MARK: - Frame Processing
@@ -169,7 +212,7 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
                 return
             }
             
-            let trapezoidCorners = CourtLayout.referenceImagePoints(for: self.previewLayer?.bounds.size ?? .zero).prefix(4)
+            let trapezoidCorners = self.calibrationPoints.prefix(4)
             
             guard let footPos = self.playerDetector.footPositionInImage else {
                 // Only print every few seconds to avoid log spam
@@ -196,7 +239,7 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
             return
         }
         
-        let trapezoidCorners = CourtLayout.referenceImagePoints(for: previewLayer?.bounds.size ?? .zero).prefix(4)
+        let trapezoidCorners = calibrationPoints.prefix(4)
         
         guard let projected = HomographyHelper.project(point: location, using: matrix, trapezoidCorners: Array(trapezoidCorners)) else {
             print("❌ Tap projection failed")
@@ -281,7 +324,4 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
             self.playerPositionPublisher.send(point) // ✅ broadcast position
         }
     }
-
 }
-
-

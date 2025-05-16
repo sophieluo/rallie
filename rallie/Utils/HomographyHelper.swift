@@ -66,12 +66,11 @@ class HomographyHelper {
         }
         path.close()
         
-        // Add some tolerance for edge taps
-        let tolerance: CGFloat = 5.0
+        // Add more tolerance for edge taps
+        let tolerance: CGFloat = 20.0  // Increased from 5.0 to be more lenient
         let expandedPath = UIBezierPath(cgPath: path.cgPath)
         expandedPath.lineWidth = tolerance * 2
         
         return expandedPath.contains(point)
     }
 }
-

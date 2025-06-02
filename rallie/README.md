@@ -2,13 +2,15 @@
 
 Welcome to the Rallie iOS project. This app powers an AI-driven tennis ball machine that interacts with the player in real time. The system uses the phone's camera, computer vision (via Apple Vision framework), and Bluetooth to dynamically adjust shot placement based on the player's position.
 
+> 📝 **Note**: For comprehensive project documentation, see [ProjectDocumentation.md](./Docs/ProjectDocumentation.md)
+
 ---
 
 ## 🔧 Key Features
 
-- **Real-Time Player Detection**: Detects player's feet position on court using `VNDetectHumanRectanglesRequest`.
+- **Real-Time Player Detection**: Detects player's feet position on court using `VNDetectHumanBodyPoseRequest`.
 - **Homography Mapping**: Maps the detected position from the image space to real-world court coordinates.
-- **Mini Court Visualization**: Displays player’s projected position and user taps on a mini virtual court.
+- **Mini Court Visualization**: Displays player's projected position and user taps on a mini virtual court.
 - **Zone-Based Ball Placement Logic**: Divides the court into 16 zones (4x4) and chooses pre-tuned commands for shot delivery.
 - **Command Transmission via Bluetooth**: Sends 18-digit commands to the ball machine.
 - **CSV Logging**: Logs player positions to `player_positions.csv` in `Documents/` directory for debugging and training.
@@ -28,6 +30,7 @@ rallie/
 │   └── LogicManager.swift              # Processes player positions & generates commands
 ├── Docs/
 │   └── CommandBroadcastingLogic.md     # Developer documentation for command logic
+│   └── ProjectDocumentation.md         # Comprehensive project documentation
 ├── Frameworks/
 ├── Preview Content/
 ├── Resources/
@@ -100,4 +103,12 @@ Use this for visualizing player movement or debugging the homography.
 - BLE UUIDs are optional; BluetoothManager gracefully skips if not configured.
 - To test on device, be sure to use **real iPhone** (not simulator) for camera access and BLE.
 
+## 🚧 Known Issues
+
+- **Player Detection**: Currently has accuracy issues that need to be fixed.
+- **Homography Tap Validation**: After recent integration of draggable corners feature, the mapping is incorrect (e.g., tapping upper left shows dot in upper right corner of minicourtview).
+- **Performance**: Working to achieve sub-100ms latency from player detection to command dispatch.
+
 ---
+
+*Last updated: June 2, 2025*

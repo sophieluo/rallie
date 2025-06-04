@@ -22,6 +22,9 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
     @Published var projectedPlayerPosition: CGPoint? = nil
     @Published var isTappingEnabled = false
     
+    // Store the current pixel buffer for image processing
+    var currentPixelBuffer: CVPixelBuffer?
+
     // MARK: - Calibration Points
     @Published var calibrationPoints: [CGPoint] = []
     @Published var isCalibrationMode = true
@@ -197,6 +200,9 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
             print("❌ Failed to get pixel buffer")
             return
         }
+        
+        // Store the current pixel buffer for Canny edge detection
+        self.currentPixelBuffer = pixelBuffer
         
         if !session.isRunning {
             print("⚠️ Session not running during frame processing")

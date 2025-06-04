@@ -45,9 +45,13 @@ struct CameraView: View {
             }
             .ignoresSafeArea()
 
-            // Show either calibration points or court overlay based on mode
+            // Show either calibration points, canny edge detection, or court overlay based on mode
             if cameraController.isCalibrationMode {
-                CalibrationPointsView(cameraController: cameraController)
+                if cameraController.cannyModeActive {
+                    CannyEdgeDetectionView(cameraController: cameraController)
+                } else {
+                    CalibrationPointsView(cameraController: cameraController)
+                }
             } else {
                 // Original court overlay (only shown after calibration)
                 OverlayShapeView(
@@ -60,7 +64,7 @@ struct CameraView: View {
             VStack {
                 // Instruction text based on current mode
                 Text(cameraController.isCalibrationMode ? 
-                     "Drag the colored points to the 4 corners of the court" : 
+                     (cameraController.cannyModeActive ? "Adjust thresholds to detect court lines" : "Drag the colored points to the 4 corners of the court") : 
                      "Align the court to fit the red outline")
                     .foregroundColor(.white)
                     .padding(.top, 40)
@@ -123,24 +127,62 @@ struct CameraView: View {
                                 .foregroundColor(.white)
                                 .padding()
                         }
+                        
                         Spacer()
+                        
+                        // Canny mode toggle button (only show when not in calibration mode)
+                        if !cameraController.isCalibrationMode {
+                            Button(action: {
+                                cameraController.cannyModeActive.toggle()
+                            }) {
+                                HStack {
+                                    Image(systemName: "wand.and.stars")
+                                    Text("Canny")
+                                }
+                                .font(.system(size: 16))
+                                .padding(8)
+                                .background(cameraController.cannyModeActive ? Color.green.opacity(0.8) : Color.blue.opacity(0.8))
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                            }
+                        }
                     }
 
                     Spacer()
 
                     // Calibration/Alignment button
                     if cameraController.isCalibrationMode {
-                        Button(action: {
-                            cameraController.computeHomographyFromCalibrationPoints()
-                            cameraController.isCalibrationMode = false
-                            print("✅ Calibration completed")
-                        }) {
-                            Text("Calibration Complete")
+                        HStack(spacing: 20) {
+                            // Toggle between manual and automatic calibration
+                            Button(action: {
+                                cameraController.cannyModeActive.toggle()
+                            }) {
+                                HStack {
+                                    Image(systemName: cameraController.cannyModeActive ? "hand.point.up.left" : "wand.and.stars")
+                                    Text(cameraController.cannyModeActive ? "Manual Mode" : "Auto Detect")
+                                }
                                 .font(.headline)
                                 .padding()
-                                .background(Color.green.opacity(0.8))
+                                .background(Color.blue.opacity(0.8))
                                 .foregroundColor(.white)
                                 .cornerRadius(10)
+                            }
+                            
+                            // Complete calibration button
+                            Button(action: {
+                                if !cameraController.cannyModeActive {
+                                    cameraController.computeHomographyFromCalibrationPoints()
+                                }
+                                cameraController.isCalibrationMode = false
+                                print("✅ Calibration completed")
+                            }) {
+                                Text("Calibration Complete")
+                                    .font(.headline)
+                                    .padding()
+                                    .background(Color.green.opacity(0.8))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                            }
                         }
                         .padding(.bottom, 100)
                     } else if !cameraController.isTappingEnabled {

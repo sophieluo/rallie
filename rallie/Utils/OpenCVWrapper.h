@@ -17,7 +17,16 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (nullable NSValue *)projectPoint:(CGPoint)point usingMatrix:(NSArray<NSNumber *> *)matrix;
 
+// Canny edge detection method
++ (UIImage *)cannyEdgeDetectionWithImage:(UIImage *)image
+                            lowerThreshold:(double)lowerThreshold
+                            upperThreshold:(double)upperThreshold;
+
+// Court corner detection method
++ (nullable NSArray<NSValue *> *)detectCourtCornersInImage:(UIImage *)image
+                                            lowerThreshold:(double)lowerThreshold
+                                            upperThreshold:(double)upperThreshold;
+
 @end
 
 NS_ASSUME_NONNULL_END
-

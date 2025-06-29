@@ -133,9 +133,9 @@ using namespace cv;
     return resultImage;
 }
 
-+ (NSArray<NSValue *> *)detectCourtCornersInImage:(UIImage *)image
-                                   lowerThreshold:(double)lowerThreshold
-                                   upperThreshold:(double)upperThreshold {
++ (NSArray<NSValue *> *)detectCourtCornersIn:(UIImage *)image
+                               lowerThreshold:(double)lowerThreshold
+                               upperThreshold:(double)upperThreshold {
     // Convert UIImage to cv::Mat
     CGColorSpaceRef colorSpace = CGImageGetColorSpace(image.CGImage);
     CGFloat cols = image.size.width;

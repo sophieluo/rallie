@@ -23,9 +23,9 @@ NS_ASSUME_NONNULL_BEGIN
                             upperThreshold:(double)upperThreshold;
 
 // Court corner detection method
-+ (nullable NSArray<NSValue *> *)detectCourtCornersInImage:(UIImage *)image
-                                            lowerThreshold:(double)lowerThreshold
-                                            upperThreshold:(double)upperThreshold;
++ (nullable NSArray<NSValue *> *)detectCourtCornersIn:(UIImage *)image
+                                       lowerThreshold:(double)lowerThreshold
+                                       upperThreshold:(double)upperThreshold;
 
 @end
 

@@ -21,6 +21,7 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
     @Published var homographyMatrix: [NSNumber]? = nil
     @Published var projectedPlayerPosition: CGPoint? = nil
     @Published var isTappingEnabled = false
+    @Published var cannyModeActive = false
     
     // Store the current pixel buffer for image processing
     var currentPixelBuffer: CVPixelBuffer?
@@ -194,6 +195,21 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         // Removed the original implementation
     }
 
+    // MARK: - Image Processing
+    func getCurrentFrame() -> UIImage? {
+        guard let pixelBuffer = self.currentPixelBuffer else {
+            return nil
+        }
+        
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+            return nil
+        }
+        
+        return UIImage(cgImage: cgImage)
+    }
+
     // MARK: - Frame Processing
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
@@ -214,7 +230,7 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         DispatchQueue.main.async { [weak self] in
             guard let self = self,
                   let matrix = self.homographyMatrix else {
-                print("❌ Missing homography matrix")
+                //print("❌ Missing homography matrix")
                 return
             }
             
@@ -222,10 +238,10 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
             
             guard let footPos = self.playerDetector.footPositionInImage else {
                 // Only print every few seconds to avoid log spam
-                if let last = self.lastLogTime, Date().timeIntervalSince(last) > 2.0 {
-                    print("ℹ️ No foot position detected")
-                    self.lastLogTime = Date()
-                }
+                // if let last = self.lastLogTime, Date().timeIntervalSince(last) > 2.0 {
+                //     print("ℹ️ No foot position detected")
+                //     self.lastLogTime = Date()
+                // }
                 return
             }
             
@@ -241,14 +257,14 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
     // MARK: - Tap Handling
     func handleUserTap(_ location: CGPoint) {
         guard let matrix = homographyMatrix else {
-            print("❌ Missing homography matrix")
+            //print("❌ Missing homography matrix")
             return
         }
         
         let trapezoidCorners = calibrationPoints.prefix(4)
         
         guard let projected = HomographyHelper.project(point: location, using: matrix, trapezoidCorners: Array(trapezoidCorners)) else {
-            print("❌ Tap projection failed")
+            //print("❌ Tap projection failed")
             return
         }
 

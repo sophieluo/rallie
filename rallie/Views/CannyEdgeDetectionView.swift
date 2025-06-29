@@ -31,7 +31,7 @@ struct CannyEdgeDetectionView: View {
             }
             
             VStack {
-                // Header with brand name
+                // Header with brand name and controls toggle
                 HStack {
                     Text("canny")
                         .font(.system(size: 24, weight: .bold))
@@ -63,7 +63,7 @@ struct CannyEdgeDetectionView: View {
                 // Controls
                 if showControls {
                     VStack(spacing: 20) {
-                        // Lower threshold slider
+                        // Threshold sliders
                         VStack(alignment: .leading) {
                             Text("Lower Threshold: \(Int(lowerThreshold))")
                                 .foregroundColor(.white)
@@ -73,10 +73,7 @@ struct CannyEdgeDetectionView: View {
                                 .onChange(of: lowerThreshold) { _ in
                                     processImage()
                                 }
-                        }
-                        
-                        // Upper threshold slider
-                        VStack(alignment: .leading) {
+                            
                             Text("Upper Threshold: \(Int(upperThreshold))")
                                 .foregroundColor(.white)
                             
@@ -86,41 +83,53 @@ struct CannyEdgeDetectionView: View {
                                     processImage()
                                 }
                         }
+                        .padding(.bottom, 20) // Add padding to separate sliders from buttons
                         
-                        // Process button
+                        // Always show Detect Corners button
                         Button(action: {
                             processImage()
                         }) {
-                            Text(isProcessing ? "Processing..." : "Detect Court Corners")
+                            Text(isProcessing ? "Processing..." : "Detect Corners")
                                 .font(.headline)
                                 .padding()
+                                .frame(maxWidth: .infinity)
                                 .background(Color.blue.opacity(0.8))
                                 .foregroundColor(.white)
                                 .cornerRadius(10)
                         }
                         .disabled(isProcessing)
                         
-                        // Use detected corners button
+                        // Show status of corner detection
+                        if !detectedCorners.isEmpty {
+                            Text(hasDetectedCorners ? "✅ 4 corners detected" : "⚠️ \(detectedCorners.count) corners detected (need 4)")
+                                .foregroundColor(hasDetectedCorners ? .green : .yellow)
+                                .font(.headline)
+                                .padding(.vertical, 5)
+                        }
+                        
+                        // Only show Calibration Complete button when corners are detected
                         if hasDetectedCorners {
                             Button(action: {
                                 useDetectedCorners()
                             }) {
-                                Text("Use These Corners")
+                                Text("Calibration Complete")
                                     .font(.headline)
                                     .padding()
+                                    .frame(maxWidth: .infinity)
                                     .background(Color.green.opacity(0.8))
                                     .foregroundColor(.white)
                                     .cornerRadius(10)
                             }
                         }
                         
-                        // Return to manual calibration
+                        // Manual mode button
                         Button(action: {
                             cameraController.cannyModeActive = false
                         }) {
-                            Text("Switch to Manual Calibration")
+                            Text("Manual Mode")
                                 .font(.headline)
                                 .padding()
+                                .frame(maxWidth: .infinity)
                                 .background(Color.red.opacity(0.8))
                                 .foregroundColor(.white)
                                 .cornerRadius(10)
@@ -145,7 +154,7 @@ struct CannyEdgeDetectionView: View {
             }
         }
         .onAppear {
-            // Capture initial frame when view appears
+            // Capture initial frame and process it when view appears
             captureAndProcessFrame()
         }
     }
@@ -161,7 +170,9 @@ struct CannyEdgeDetectionView: View {
             return
         }
         
+        // Process with both Canny and corner detection on initial load
         processImageWithCanny(currentFrame)
+        detectCourtCorners(currentFrame)
     }
     
     private func processImage() {
@@ -199,7 +210,7 @@ struct CannyEdgeDetectionView: View {
         // Process in background to avoid UI freezing
         DispatchQueue.global(qos: .userInitiated).async {
             if let corners = OpenCVWrapper.detectCourtCorners(
-                inImage: image,
+                in: image,
                 lowerThreshold: self.lowerThreshold,
                 upperThreshold: self.upperThreshold
             ) as? [NSValue] {
@@ -242,24 +253,5 @@ struct CannyEdgeDetectionView: View {
         cameraController.cannyModeActive = false
         
         print("✅ Applied detected corners to calibration")
-    }
-}
-
-// Extension to CameraController to add Canny mode support
-extension CameraController {
-    @Published var cannyModeActive: Bool = false
-    
-    func getCurrentFrame() -> UIImage? {
-        guard let pixelBuffer = self.currentPixelBuffer else {
-            return nil
-        }
-        
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        let context = CIContext()
-        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
-            return nil
-        }
-        
-        return UIImage(cgImage: cgImage)
     }
 }

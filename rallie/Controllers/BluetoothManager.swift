@@ -6,11 +6,14 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
     private var commandCharacteristic: CBCharacteristic?
 
     // Default UUIDs to use if not found in Info.plist
-    private var serviceUUID: CBUUID = CBUUID(string: "FFE0")
-    private var characteristicUUID: CBUUID = CBUUID(string: "FFE1")
+    private var serviceUUID: CBUUID = CBUUID(string: "12345678-1234-1234-1234-123456789abc")
+    private var characteristicUUID: CBUUID = CBUUID(string: "abcd1234-1234-1234-1234-abcdef123456")
     
-    // Hardcoded target peripheral UUID
-    private let targetPeripheralUUID = "A8A83D7C-5F32-A19A-42A1-4446F3C67D85"
+    // Hardcoded target peripheral UUID - this is the ESP32's device UUID
+    private let targetPeripheralUUID = "E7BCC5AA-00C6-63F1-5378-C4B7258294E8"
+    
+    // For testing with any BLE device
+    private let testMode = true
     
     // Connection state for UI feedback
     @Published var connectionState: ConnectionState = .disconnected
@@ -150,6 +153,17 @@ class BluetoothManager: NSObject, ObservableObject, CBCentralManagerDelegate, CB
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral,
                         advertisementData: [String: Any], rssi RSSI: NSNumber) {
         print("🔵 Discovered peripheral: \(peripheral.name ?? "Unknown") - UUID: \(peripheral.identifier.uuidString)")
+        
+        // In test mode, connect to any peripheral with the right service
+        if testMode {
+            print("✅ Found peripheral in test mode!")
+            targetPeripheral = peripheral
+            centralManager.stopScan()
+            connectionState = .connecting
+            centralManager.connect(peripheral, options: nil)
+            peripheral.delegate = self
+            return
+        }
         
         // Check if this is our target peripheral
         if peripheral.identifier.uuidString.uppercased() == targetPeripheralUUID.uppercased() {

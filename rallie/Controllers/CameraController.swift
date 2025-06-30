@@ -21,14 +21,10 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
     @Published var homographyMatrix: [NSNumber]? = nil
     @Published var projectedPlayerPosition: CGPoint? = nil
     @Published var isTappingEnabled = false
-    @Published var cannyModeActive = false
+    @Published var isCalibrationMode = true
     
-    // Store the current pixel buffer for image processing
-    var currentPixelBuffer: CVPixelBuffer?
-
     // MARK: - Calibration Points
     @Published var calibrationPoints: [CGPoint] = []
-    @Published var isCalibrationMode = true
 
     // MARK: - Setup
     func startSession(in view: UIView, screenSize: CGSize) {
@@ -195,30 +191,12 @@ class CameraController: NSObject, ObservableObject, AVCaptureVideoDataOutputSamp
         // Removed the original implementation
     }
 
-    // MARK: - Image Processing
-    func getCurrentFrame() -> UIImage? {
-        guard let pixelBuffer = self.currentPixelBuffer else {
-            return nil
-        }
-        
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        let context = CIContext()
-        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else {
-            return nil
-        }
-        
-        return UIImage(cgImage: cgImage)
-    }
-
     // MARK: - Frame Processing
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
             print("❌ Failed to get pixel buffer")
             return
         }
-        
-        // Store the current pixel buffer for Canny edge detection
-        self.currentPixelBuffer = pixelBuffer
         
         if !session.isRunning {
             print("⚠️ Session not running during frame processing")

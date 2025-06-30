@@ -62,12 +62,26 @@ class LogicManager: ObservableObject {
             print("❓ Averaged point \(avgPoint) is outside zone grid — using fallback")
         }
 
-        // Send the command via Bluetooth
-        bluetoothManager.sendCommand(command)
-        print("📤 Sent command: \(command)")
+        // Send the command via Bluetooth using the new protocol format
+        sendBluetoothCommand(command)
 
         // Update last sent timestamp
         lastCommandSent = now
     }
+    
+    private func sendBluetoothCommand(_ command: CommandLookup.BluetoothCommand) {
+        // Send the command using the new protocol format
+        bluetoothManager.sendCommand(
+            upperWheelSpeed: command.upperWheelSpeed,
+            lowerWheelSpeed: command.lowerWheelSpeed,
+            pitchAngle: command.pitchAngle,
+            yawAngle: command.yawAngle,
+            feedSpeed: command.feedSpeed,
+            controlBit: command.controlBit
+        )
+        
+        print("📤 Sent command: upperWheel=\(command.upperWheelSpeed), lowerWheel=\(command.lowerWheelSpeed), " +
+              "pitch=\(command.pitchAngle), yaw=\(command.yawAngle), feed=\(command.feedSpeed), " +
+              "control=\(command.controlBit)")
+    }
 }
-

@@ -2,24 +2,83 @@ import Foundation
 import CoreGraphics
 
 struct CommandLookup {
-    // Fallback 18-digit command if no zone match is found
-    static let fallbackCommand = "12000120000030003000"
+    // Protocol constants
+    private static let headerByte1: UInt8 = 0x5A
+    private static let headerByte2: UInt8 = 0xA5
+    private static let sourceIdentifier: UInt8 = 0x83
+    
+    // Fallback command parameters if no zone match is found
+    static let fallbackCommand = BluetoothCommand(
+        upperWheelSpeed: 50,
+        lowerWheelSpeed: 50,
+        pitchAngle: 45,
+        yawAngle: 45,
+        feedSpeed: 50,
+        controlBit: 0
+    )
 
-    // Predefined commands for 4x4 grid zones (zoneID -> 18-digit command)
-    private static let hardcodedCommands: [Int: String] = [
-        0: "11000110000030003000",  1: "12000110000030003000",
-        2: "12000120000030003000",  3: "13000120000030003000",
-        4: "11000110000130003000",  5: "12000110000130003000",
-        6: "12000120000130003000",  7: "13000120000130003000",
-        8: "11000110000230003000",  9: "12000110000230003000",
-        10: "12000120000230003000", 11: "13000120000230003000",
-        12: "11000110000330003000", 13: "12000110000330003000",
-        14: "12000120000330003000", 15: "13000120000330003000"
+    // Command structure for the new protocol
+    struct BluetoothCommand {
+        let upperWheelSpeed: UInt8 // 0-100
+        let lowerWheelSpeed: UInt8 // 0-100
+        let pitchAngle: UInt8      // 0-90
+        let yawAngle: UInt8        // 0-90
+        let feedSpeed: UInt8       // 0-100
+        let controlBit: UInt8      // 0/1
+        
+        // Convert to byte array (without CRC)
+        func toByteArray() -> [UInt8] {
+            return [
+                CommandLookup.headerByte1,
+                CommandLookup.headerByte2,
+                CommandLookup.sourceIdentifier,
+                upperWheelSpeed,
+                lowerWheelSpeed,
+                pitchAngle,
+                yawAngle,
+                feedSpeed,
+                controlBit
+            ]
+        }
+        
+        // Calculate CRC and return complete command
+        func toCompleteByteArray() -> [UInt8] {
+            let bytes = toByteArray()
+            let crc = CommandLookup.calculateCRC(bytes)
+            return bytes + [crc]
+        }
+    }
+
+    // Predefined commands for 4x4 grid zones (zoneID -> BluetoothCommand)
+    private static let hardcodedCommands: [Int: BluetoothCommand] = [
+        // Row 1 (back court)
+        0: BluetoothCommand(upperWheelSpeed: 70, lowerWheelSpeed: 70, pitchAngle: 30, yawAngle: 20, feedSpeed: 60, controlBit: 1),
+        1: BluetoothCommand(upperWheelSpeed: 70, lowerWheelSpeed: 70, pitchAngle: 30, yawAngle: 40, feedSpeed: 60, controlBit: 1),
+        2: BluetoothCommand(upperWheelSpeed: 70, lowerWheelSpeed: 70, pitchAngle: 30, yawAngle: 60, feedSpeed: 60, controlBit: 1),
+        3: BluetoothCommand(upperWheelSpeed: 70, lowerWheelSpeed: 70, pitchAngle: 30, yawAngle: 80, feedSpeed: 60, controlBit: 1),
+        
+        // Row 2
+        4: BluetoothCommand(upperWheelSpeed: 60, lowerWheelSpeed: 60, pitchAngle: 40, yawAngle: 20, feedSpeed: 50, controlBit: 1),
+        5: BluetoothCommand(upperWheelSpeed: 60, lowerWheelSpeed: 60, pitchAngle: 40, yawAngle: 40, feedSpeed: 50, controlBit: 1),
+        6: BluetoothCommand(upperWheelSpeed: 60, lowerWheelSpeed: 60, pitchAngle: 40, yawAngle: 60, feedSpeed: 50, controlBit: 1),
+        7: BluetoothCommand(upperWheelSpeed: 60, lowerWheelSpeed: 60, pitchAngle: 40, yawAngle: 80, feedSpeed: 50, controlBit: 1),
+        
+        // Row 3
+        8: BluetoothCommand(upperWheelSpeed: 50, lowerWheelSpeed: 50, pitchAngle: 50, yawAngle: 20, feedSpeed: 40, controlBit: 1),
+        9: BluetoothCommand(upperWheelSpeed: 50, lowerWheelSpeed: 50, pitchAngle: 50, yawAngle: 40, feedSpeed: 40, controlBit: 1),
+        10: BluetoothCommand(upperWheelSpeed: 50, lowerWheelSpeed: 50, pitchAngle: 50, yawAngle: 60, feedSpeed: 40, controlBit: 1),
+        11: BluetoothCommand(upperWheelSpeed: 50, lowerWheelSpeed: 50, pitchAngle: 50, yawAngle: 80, feedSpeed: 40, controlBit: 1),
+        
+        // Row 4 (front court)
+        12: BluetoothCommand(upperWheelSpeed: 40, lowerWheelSpeed: 40, pitchAngle: 60, yawAngle: 20, feedSpeed: 30, controlBit: 1),
+        13: BluetoothCommand(upperWheelSpeed: 40, lowerWheelSpeed: 40, pitchAngle: 60, yawAngle: 40, feedSpeed: 30, controlBit: 1),
+        14: BluetoothCommand(upperWheelSpeed: 40, lowerWheelSpeed: 40, pitchAngle: 60, yawAngle: 60, feedSpeed: 30, controlBit: 1),
+        15: BluetoothCommand(upperWheelSpeed: 40, lowerWheelSpeed: 40, pitchAngle: 60, yawAngle: 80, feedSpeed: 30, controlBit: 1)
     ]
 
     /// Given a position (in meters), return the matching command.
     /// If position is outside court area, return fallback.
-    static func command(for position: CGPoint) -> String {
+    static func command(for position: CGPoint) -> BluetoothCommand {
         guard let zoneID = zoneID(for: position) else {
             return fallbackCommand
         }
@@ -51,5 +110,13 @@ struct CommandLookup {
         print("📍 Point \(point) mapped to zone \(zoneID) (col: \(col), row: \(row))")
         return zoneID
     }
+    
+    // Simple CRC calculation (XOR of all bytes)
+    static func calculateCRC(_ bytes: [UInt8]) -> UInt8 {
+        var crc: UInt8 = 0
+        for byte in bytes {
+            crc ^= byte
+        }
+        return crc
+    }
 }
-
